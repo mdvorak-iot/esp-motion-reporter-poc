@@ -1,3 +1,6 @@
+# Flash size
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+
 # Enable support for power management
 CONFIG_PM_ENABLE=y
 CONFIG_PM_DFS_INIT_AUTO=y

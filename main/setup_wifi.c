@@ -1,10 +1,17 @@
 #include <esp_log.h>
 #include <esp_wifi.h>
 #include <wifi_provisioning/manager.h>
-#include <wifi_provisioning/scheme_ble.h>
 #include <wifi_reconnect.h>
 
+#define APP_WIFI_PROV_TYPE_BLE CONFIG_APP_WIFI_PROV_TYPE_BLE
+#define APP_WIFI_PROV_TYPE_SOFT_AP CONFIG_APP_WIFI_PROV_TYPE_SOFT_AP
 #define APP_WIFI_PROV_TIMEOUT_S CONFIG_APP_WIFI_PROV_TIMEOUT_S
+
+#ifdef APP_WIFI_PROV_TYPE_BLE
+#include <wifi_provisioning/scheme_ble.h>
+#elif defined(APP_WIFI_PROV_TYPE_SOFT_AP)
+#include <wifi_provisioning/scheme_softap.h>
+#endif
 
 static const char TAG[] = "setup_wifi";
 
@@ -89,6 +96,7 @@ void setup_wifi(const char *hostname)
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_MAX_MODEM));
     ESP_ERROR_CHECK(tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, hostname));
     ESP_ERROR_CHECK(wifi_reconnect_start()); // NOTE this must be called before connect, otherwise it might miss connected event
 
@@ -98,8 +106,13 @@ void setup_wifi(const char *hostname)
 
     // Initialize provisioning
     wifi_prov_mgr_config_t wifi_prof_cfg = {
+#ifdef APP_WIFI_PROV_TYPE_BLE
         .scheme = wifi_prov_scheme_ble,
         .scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM,
+#elif defined(APP_WIFI_PROV_TYPE_SOFT_AP)
+        .scheme = wifi_prov_scheme_softap,
+        .scheme_event_handler = WIFI_PROV_EVENT_HANDLER_NONE,
+#endif
     };
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, &wifi_prov_event_handler, NULL));
     ESP_ERROR_CHECK(wifi_prov_mgr_init(wifi_prof_cfg));
