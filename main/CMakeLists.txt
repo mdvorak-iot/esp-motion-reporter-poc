@@ -10,4 +10,5 @@ idf_component_register(
         esp32
         esp_wifi
         app_update
+        status_led
 )
