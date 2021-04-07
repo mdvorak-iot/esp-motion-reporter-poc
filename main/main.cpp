@@ -4,6 +4,11 @@
 #include <esp_ota_ops.h>
 #include <nvs_flash.h>
 
+extern "C" {
+#include <mpu9250.h>
+#include <calibrate.h>
+}
+
 static const char TAG[] = "main";
 
 // Global state
@@ -30,7 +35,10 @@ extern "C" void app_main()
     ESP_LOGI(TAG, "started %s %s", app_info.project_name, app_info.version);
 
     // Run
-    ESP_LOGI(TAG, "life is good");
+    // TODO
+    calibrate_gyro();
+    calibrate_accel();
+    calibrate_mag();
 }
 
 // Setup logic
@@ -55,5 +63,5 @@ static void setup_init()
 
 static void setup_devices()
 {
-    // Custom devices and other init, that needs to be done before waiting for wifi connection
+    // TODO
 }

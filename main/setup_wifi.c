@@ -7,9 +7,9 @@
 #define APP_WIFI_PROV_TYPE_SOFT_AP CONFIG_APP_WIFI_PROV_TYPE_SOFT_AP
 #define APP_WIFI_PROV_TIMEOUT_S CONFIG_APP_WIFI_PROV_TIMEOUT_S
 
-#ifdef APP_WIFI_PROV_TYPE_BLE
+#if APP_WIFI_PROV_TYPE_BLE
 #include <wifi_provisioning/scheme_ble.h>
-#elif defined(APP_WIFI_PROV_TYPE_SOFT_AP)
+#elif APP_WIFI_PROV_TYPE_SOFT_AP
 #include <wifi_provisioning/scheme_softap.h>
 #endif
 
@@ -106,10 +106,10 @@ void setup_wifi(const char *hostname)
 
     // Initialize provisioning
     wifi_prov_mgr_config_t wifi_prof_cfg = {
-#ifdef APP_WIFI_PROV_TYPE_BLE
+#if APP_WIFI_PROV_TYPE_BLE
         .scheme = wifi_prov_scheme_ble,
         .scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM,
-#elif defined(APP_WIFI_PROV_TYPE_SOFT_AP)
+#elif APP_WIFI_PROV_TYPE_SOFT_AP
         .scheme = wifi_prov_scheme_softap,
         .scheme_event_handler = WIFI_PROV_EVENT_HANDLER_NONE,
 #endif

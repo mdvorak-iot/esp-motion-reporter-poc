@@ -8,3 +8,6 @@
 	path = components/double_reset
 	url = https://github.com/mdvorak-iot/esp-double-reset.git
 	branch = main
+[submodule "mpu9250"]
+	path = libraries/mpu9250
+	url = https://github.com/psiphi75/esp-mpu9250.git
