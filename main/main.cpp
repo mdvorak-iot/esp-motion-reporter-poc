@@ -1,19 +1,20 @@
+#include <double_reset.h>
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_ota_ops.h>
 #include <nvs_flash.h>
-#include <status_led.h>
 
 static const char TAG[] = "main";
 
 // Global state
-static status_led_handle_ptr status_led = nullptr;
+static bool reconfigure = false;
 
+// Setup
 static void setup_init();
 static void setup_devices();
 extern "C" void setup_wifi(const char *hostname);
-extern "C" void setup_wifi_connect();
-extern "C" void setup_status_led(gpio_num_t status_led_pin, bool status_led_on_state, status_led_handle_ptr *out_status_led);
+extern "C" void setup_wifi_connect(bool reconfigure);
+extern "C" void setup_status_led();
 
 extern "C" void app_main()
 {
@@ -24,8 +25,8 @@ extern "C" void app_main()
     setup_init();
     setup_devices();
     setup_wifi(app_info.project_name);
-    setup_status_led(GPIO_NUM_6, true, &status_led);
-    setup_wifi_connect(); // this should be last
+    setup_status_led();
+    setup_wifi_connect(reconfigure); // this should be last
     ESP_LOGI(TAG, "started %s %s", app_info.project_name, app_info.version);
 
     // Run
@@ -46,6 +47,10 @@ static void setup_init()
 
     // System services
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    // Check double reset
+    // NOTE this should be called as soon as possible, ideally right after nvs init
+    ESP_ERROR_CHECK_WITHOUT_ABORT(double_reset_start(&reconfigure, DOUBLE_RESET_DEFAULT_TIMEOUT));
 }
 
 static void setup_devices()

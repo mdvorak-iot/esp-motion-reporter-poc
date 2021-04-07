@@ -10,5 +10,9 @@ idf_component_register(
         esp32
         esp_wifi
         app_update
+        wifi_provisioning
+        bt
+        double_reset
         status_led
+        wifi_reconnect
 )

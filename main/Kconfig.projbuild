@@ -1,0 +1,8 @@
+menu "Application config"
+    config APP_WIFI_PROV_TIMEOUT_S
+        int "Wi-Fi provisioning timeout"
+        default 120
+        help
+            Timeout, after which is Wi-Fi provisioning stopped and device
+            continues in normal mode of operation (connected or not).
+endmenu
