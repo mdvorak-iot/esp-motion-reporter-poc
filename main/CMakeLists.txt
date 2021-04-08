@@ -8,6 +8,7 @@ idf_component_register(
         SRC_DIRS .
         INCLUDE_DIRS .
         REQUIRES
+        ${OPTIONAL_REQUIRES}
         freertos
         nvs_flash
         log
@@ -15,7 +16,6 @@ idf_component_register(
         esp_wifi
         app_update
         wifi_provisioning
-        ${OPTIONAL_REQUIRES}
         double_reset
         status_led
         wifi_reconnect
