@@ -20,4 +20,5 @@ idf_component_register(
         status_led
         wifi_reconnect
         app_wifi
+        MPUdriver
 )

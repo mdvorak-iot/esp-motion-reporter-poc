@@ -1,18 +1,27 @@
 menu "Application config"
-    choice APP_WIFI_PROV_MODE
-        prompt "WiFi provisioning mode"
-        default APP_WIFI_PROV_TYPE_BLE
+    menu "I2C Master"
+        config I2C_MASTER_SCL
+            int "SCL GPIO Num"
+            default 22
+            help
+                GPIO number for I2C Master clock line.
 
-        config APP_WIFI_PROV_TYPE_BLE
-            bool "Bluetooth"
-        config APP_WIFI_PROV_TYPE_SOFT_AP
-            bool "WiFi SoftAP"
-    endchoice
+        config I2C_MASTER_SDA
+            int "SDA GPIO Num"
+            default 21
+            help
+                GPIO number for I2C Master data line.
 
-    config APP_WIFI_PROV_TIMEOUT_S
-        int "Wi-Fi provisioning timeout"
-        default 120
-        help
-            Timeout, after which is Wi-Fi provisioning stopped and device
-            continues in normal mode of operation (connected or not).
+        config I2C_MASTER_PORT_NUM
+            int "Port Number"
+            default 1
+            help
+                Port number for I2C Master device.
+
+        config I2C_MASTER_FREQUENCY
+            int "Master Frequency"
+            default 100000
+            help
+                I2C Speed of Master device.
+    endmenu
 endmenu
