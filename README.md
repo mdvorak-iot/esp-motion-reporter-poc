@@ -33,12 +33,9 @@ flash the project.
 
 ## Dependencies
 
-Functional dependencies:
-
-* TODO
-
-Support dependencies:
-
+* https://github.com/natanaeljr/esp32-MPU-driver.git
+* https://github.com/natanaeljr/esp32-I2Cbus.git
 * https://github.com/mdvorak-iot/esp-status-led.git
 * https://github.com/mdvorak-iot/esp-wifi-reconnect.git
 * https://github.com/mdvorak-iot/esp-double-reset.git
+* https://github.com/mdvorak-iot/esp-app-wifi.git
