@@ -18,7 +18,7 @@ static esp_websocket_client_handle_t client = nullptr;
 extern "C" void app_status_init();
 static void websocket_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
 
-extern "C" void app_main()
+extern "C" [[noreturn]] void app_main()
 {
     // Initialize NVS
     esp_err_t err = nvs_flash_init();
@@ -67,19 +67,79 @@ extern "C" void app_main()
     client = esp_websocket_client_init(&websocket_cfg);
     ESP_ERROR_CHECK(esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY, websocket_event_handler, nullptr));
 
-    // Start
-    ESP_ERROR_CHECK(app_wifi_start(reconfigure));
-    ESP_LOGI(TAG, "starting");
-
-    // Run
+    // Verify
     while ((err = mpu.testConnection()) != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to connect to the MPU, error=%#X", err);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     ESP_LOGI(TAG, "MPU connection successful!");
+    ESP_ERROR_CHECK(mpu.initialize());
+    ESP_ERROR_CHECK(mpu.setDigitalLowPassFilter(mpud::DLPF_42HZ));
+
+    // Start
+    ESP_ERROR_CHECK(app_wifi_start(reconfigure));
+    ESP_LOGI(TAG, "starting");
+
+    // Wait for WiFi
+    wifi_reconnect_wait_for_connection(CONFIG_APP_WIFI_PROV_TIMEOUT_S * 1000 + CONFIG_WIFI_RECONNECT_CONNECT_TIMEOUT_MS);
+
+    ESP_ERROR_CHECK(esp_websocket_client_start(client));
+    while (!esp_websocket_client_is_connected(client))
+    {
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+
+    // Report loop
+    char buffer[1024] = {};
+    mpud::raw_axes_t accelRaw;  // x, y, z axes as int16
+    mpud::raw_axes_t gyroRaw;   // x, y, z axes as int16
+    mpud::float_axes_t accelG;  // accel axes in (g) gravity format
+    mpud::float_axes_t gyroDPS; // gyro axes in (DPS) º/s format
+
+    TickType_t start = xTaskGetTickCount();
+    while (true)
+    {
+        mpu.motion(&accelRaw, &gyroRaw); // read both in one shot
+
+        // Convert
+        accelG = mpud::accelGravity(accelRaw, mpud::ACCEL_FS_4G);
+        gyroDPS = mpud::gyroDegPerSec(gyroRaw, mpud::GYRO_FS_500DPS);
+        // Debug
+        printf("accel: [%+6.2f %+6.2f %+6.2f ] (G) \t", accelG.x, accelG.y, accelG.z);
+        printf("gyro: [%+7.2f %+7.2f %+7.2f ] (º/s)\n", gyroDPS[0], gyroDPS[1], gyroDPS[2]);
+
+        if (esp_websocket_client_is_connected(client))
+        {
+            snprintf(buffer, sizeof(buffer), "{}");
+            //esp_websocket_client_send_text(client, buffer, (int)strlen(buffer), 1000 / portTICK_PERIOD_MS);
+        }
+
+        // Throttle
+        vTaskDelayUntil(&start, 30 / portTICK_PERIOD_MS);
+    }
 }
 
 static void websocket_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
+    auto *data = (esp_websocket_event_data_t *)event_data;
+    switch (event_id)
+    {
+    case WEBSOCKET_EVENT_CONNECTED:
+        ESP_LOGI(TAG, "WEBSOCKET_EVENT_CONNECTED");
+        break;
+    case WEBSOCKET_EVENT_DISCONNECTED:
+        ESP_LOGI(TAG, "WEBSOCKET_EVENT_DISCONNECTED");
+        break;
+    case WEBSOCKET_EVENT_DATA:
+        ESP_LOGI(TAG, "WEBSOCKET_EVENT_DATA");
+        ESP_LOGI(TAG, "Received opcode=%d", data->op_code);
+        ESP_LOGW(TAG, "Total payload length=%d, data_len=%d, current payload offset=%d\r\n", data->payload_len, data->data_len, data->payload_offset);
+        break;
+    case WEBSOCKET_EVENT_ERROR:
+        ESP_LOGI(TAG, "WEBSOCKET_EVENT_ERROR");
+        break;
+    default:
+        break;
+    }
 }
