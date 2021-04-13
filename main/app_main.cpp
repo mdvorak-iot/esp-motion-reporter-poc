@@ -4,6 +4,7 @@
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_ota_ops.h>
+#include <esp_websocket_client.h>
 #include <esp_wifi.h>
 #include <mpu/math.hpp>
 #include <mpu/types.hpp>
@@ -12,7 +13,10 @@
 
 static const char TAG[] = "app_main";
 
+static esp_websocket_client_handle_t client = nullptr;
+
 extern "C" void app_status_init();
+static void websocket_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
 
 extern "C" void app_main()
 {
@@ -56,6 +60,13 @@ extern "C" void app_main()
     MPU_t mpu;
     mpu.setBus(i2c0);
 
+    // Reporting
+    esp_websocket_client_config_t websocket_cfg = {};
+    websocket_cfg.uri = "ws://echo.websocket.org";
+
+    client = esp_websocket_client_init(&websocket_cfg);
+    ESP_ERROR_CHECK(esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY, websocket_event_handler, nullptr));
+
     // Start
     ESP_ERROR_CHECK(app_wifi_start(reconfigure));
     ESP_LOGI(TAG, "starting");
@@ -67,4 +78,8 @@ extern "C" void app_main()
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     ESP_LOGI(TAG, "MPU connection successful!");
+}
+
+static void websocket_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
+{
 }
