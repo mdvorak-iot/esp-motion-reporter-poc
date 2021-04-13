@@ -1,5 +1,6 @@
 #include <esp_event.h>
 #include <esp_log.h>
+#include <esp_websocket_client.h>
 #include <status_led.h>
 #include <wifi_provisioning/manager.h>
 #include <wifi_reconnect.h>
@@ -44,7 +45,9 @@ static void wifi_prov_handler(__unused void *handler_arg, __unused esp_event_bas
     }
 }
 
-void app_status_init()
+// TODO     ESP_ERROR_CHECK(esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY, websocket_event_handler, nullptr));
+
+void app_status_init(esp_websocket_client_handle_t client)
 {
     // Status LED
     esp_err_t err = status_led_create_default();

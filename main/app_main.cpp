@@ -7,7 +7,6 @@
 #include <esp_websocket_client.h>
 #include <esp_wifi.h>
 #include <mpu/math.hpp>
-#include <mpu/types.hpp>
 #include <nvs_flash.h>
 #include <wifi_reconnect.h>
 
@@ -15,7 +14,7 @@ static const char TAG[] = "app_main";
 
 static esp_websocket_client_handle_t client = nullptr;
 
-extern "C" void app_status_init();
+extern "C" void app_status_init(esp_websocket_client_handle_t client);
 static void websocket_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
 
 extern "C" [[noreturn]] void app_main()
@@ -41,9 +40,17 @@ extern "C" [[noreturn]] void app_main()
     esp_app_desc_t app_info = {};
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_ota_get_partition_description(esp_ota_get_running_partition(), &app_info));
 
-    // Setup
-    app_status_init();
+    // WebSocket client
+    esp_websocket_client_config_t websocket_cfg = {};
+    websocket_cfg.uri = "ws://echo.websocket.org";
 
+    client = esp_websocket_client_init(&websocket_cfg);
+    ESP_ERROR_CHECK(esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY, websocket_event_handler, nullptr));
+
+    // Status
+    app_status_init(client);
+
+    // WiFi
     struct app_wifi_config wifi_cfg = {
         .security = WIFI_PROV_SECURITY_1,
         .service_name = app_info.project_name,
@@ -60,13 +67,6 @@ extern "C" [[noreturn]] void app_main()
     MPU_t mpu;
     mpu.setBus(i2c0);
 
-    // Reporting
-    esp_websocket_client_config_t websocket_cfg = {};
-    websocket_cfg.uri = "ws://echo.websocket.org";
-
-    client = esp_websocket_client_init(&websocket_cfg);
-    ESP_ERROR_CHECK(esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY, websocket_event_handler, nullptr));
-
     // Verify
     while ((err = mpu.testConnection()) != ESP_OK)
     {
@@ -75,7 +75,7 @@ extern "C" [[noreturn]] void app_main()
     }
     ESP_LOGI(TAG, "MPU connection successful!");
     ESP_ERROR_CHECK(mpu.initialize());
-    ESP_ERROR_CHECK(mpu.setDigitalLowPassFilter(mpud::DLPF_42HZ));
+    ESP_ERROR_CHECK(mpu.setSampleRate(1000));
 
     // Start
     ESP_ERROR_CHECK(app_wifi_start(reconfigure));
@@ -90,6 +90,11 @@ extern "C" [[noreturn]] void app_main()
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 
+    // Calibrate
+    mpud::raw_axes_t accelCalib;         // x, y, z axes as int16
+    mpud::raw_axes_t gyroCalib;          // x, y, z axes as int16
+    mpu.motion(&accelCalib, &gyroCalib); // read both in one shot
+
     // Report loop
     char buffer[1024] = {};
     mpud::raw_axes_t accelRaw;  // x, y, z axes as int16
@@ -97,10 +102,16 @@ extern "C" [[noreturn]] void app_main()
     mpud::float_axes_t accelG;  // accel axes in (g) gravity format
     mpud::float_axes_t gyroDPS; // gyro axes in (DPS) º/s format
 
-    TickType_t start = xTaskGetTickCount();
+//    TickType_t start = xTaskGetTickCount();
     while (true)
     {
         mpu.motion(&accelRaw, &gyroRaw); // read both in one shot
+        accelRaw.x = (int16_t)(accelRaw.x - accelCalib.x);
+        accelRaw.y = (int16_t)(accelRaw.y - accelCalib.y);
+        accelRaw.z = (int16_t)(accelRaw.z - accelCalib.z);
+        gyroRaw.x = (int16_t)(gyroRaw.x - gyroCalib.x);
+        gyroRaw.y = (int16_t)(gyroRaw.y - gyroCalib.y);
+        gyroRaw.z = (int16_t)(gyroRaw.z - gyroCalib.z);
 
         // Convert
         accelG = mpud::accelGravity(accelRaw, mpud::ACCEL_FS_4G);
@@ -116,7 +127,7 @@ extern "C" [[noreturn]] void app_main()
         }
 
         // Throttle
-        vTaskDelayUntil(&start, 30 / portTICK_PERIOD_MS);
+        //vTaskDelayUntil(&start, 30 / portTICK_PERIOD_MS);
     }
 }
 
