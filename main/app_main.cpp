@@ -52,20 +52,9 @@ extern "C" void app_main()
     ESP_ERROR_CHECK(wifi_reconnect_start());
 
     // Devices
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = CONFIG_I2C_MASTER_SDA,
-        .scl_io_num = CONFIG_I2C_MASTER_SCL,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master = {
-            .clk_speed = CONFIG_I2C_MASTER_FREQUENCY,
-        },
-    };
-    ESP_ERROR_CHECK(i2c_param_config(CONFIG_I2C_MASTER_PORT_NUM, &conf));
-    ESP_ERROR_CHECK(i2c_driver_install(CONFIG_I2C_MASTER_PORT_NUM, conf.mode, 0, 0, 0));
-
+    ESP_ERROR_CHECK(i2c0.begin((gpio_num_t)CONFIG_I2C_MASTER_SDA, (gpio_num_t)CONFIG_I2C_MASTER_SCL, CONFIG_I2C_MASTER_FREQUENCY));
     MPU_t mpu;
+    mpu.setBus(i2c0);
 
     // Start
     ESP_ERROR_CHECK(app_wifi_start(reconfigure));
