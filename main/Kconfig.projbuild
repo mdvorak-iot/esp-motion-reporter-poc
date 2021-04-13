@@ -14,7 +14,7 @@ menu "Application config"
 
         config I2C_MASTER_PORT_NUM
             int "Port Number"
-            default 1
+            default 0
             help
                 Port number for I2C Master device.
 
