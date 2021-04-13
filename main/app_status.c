@@ -4,7 +4,7 @@
 #include <wifi_provisioning/manager.h>
 #include <wifi_reconnect.h>
 
-static const char TAG[] = "setup_status_led";
+static const char TAG[] = "app_status";
 
 static const uint32_t STATUS_LED_CONNECTING_INTERVAL = 500u;
 static const uint32_t STATUS_LED_PROV_INTERVAL = 50u;
@@ -44,7 +44,7 @@ static void wifi_prov_handler(__unused void *handler_arg, __unused esp_event_bas
     }
 }
 
-void setup_status_led()
+void app_status_init()
 {
     // Status LED
     esp_err_t err = status_led_create_default();
@@ -55,9 +55,6 @@ void setup_status_led()
         ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, connected_handler, STATUS_LED_DEFAULT, NULL));
         ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_handler_instance_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, disconnected_handler, STATUS_LED_DEFAULT, NULL));
         ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_handler_instance_register(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, wifi_prov_handler, STATUS_LED_DEFAULT, NULL));
-
-        // Start flashing
-        status_led_set_interval(STATUS_LED_DEFAULT, STATUS_LED_CONNECTING_INTERVAL, true);
     }
     else
     {
