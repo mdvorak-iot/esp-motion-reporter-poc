@@ -4,7 +4,6 @@
 
 To provision WiFi, use provisioning app:
 
-# TODO SoftAP
 * [Android BLE Provisioning app](https://play.google.com/store/apps/details?id=com.espressif.provble)
 * [iOS BLE Provisioning app](https://apps.apple.com/in/app/esp-ble-provisioning/id1473590141)
 
