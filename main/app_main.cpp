@@ -52,7 +52,7 @@ extern "C" [[noreturn]] void app_main()
 
     // WiFi
     struct app_wifi_config wifi_cfg = {
-        .security = WIFI_PROV_SECURITY_1,
+        .security = WIFI_PROV_SECURITY_0,
         .service_name = app_info.project_name,
         .pop = nullptr,
         .hostname = app_info.project_name,
