@@ -1,4 +1,8 @@
 menu "Application config"
+    config WEBSOCKET_SERVER_URL
+        string "WebSocket server URL"
+        default "ws://echo.websocket.org"
+
     menu "I2C Master"
         config I2C_MASTER_SCL
             int "SCL GPIO Num"

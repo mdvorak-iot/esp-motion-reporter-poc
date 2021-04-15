@@ -42,7 +42,7 @@ extern "C" [[noreturn]] void app_main()
 
     // WebSocket client
     esp_websocket_client_config_t websocket_cfg = {};
-    websocket_cfg.uri = "ws://echo.websocket.org";
+    websocket_cfg.uri = CONFIG_WEBSOCKET_SERVER_URL;
 
     client = esp_websocket_client_init(&websocket_cfg);
     ESP_ERROR_CHECK(esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY, websocket_event_handler, nullptr));
