@@ -119,11 +119,11 @@ extern "C" [[noreturn]] void app_main()
 
     char json[1024] = {};
 
-    //    TickType_t start = xTaskGetTickCount();
+    TickType_t start = xTaskGetTickCount();
     while (true)
     {
         // Throttle
-        //vTaskDelayUntil(&start, 30 / portTICK_PERIOD_MS);
+        vTaskDelayUntil(&start, CONFIG_APP_REPORT_INTERVAL / portTICK_PERIOD_MS);
 
         // Read
         mpu.motion(&accelRaw, &gyroRaw);
