@@ -26,6 +26,17 @@ static void websocket_event_handler(__unused void *handler_args, __unused esp_ev
     }
 }
 
+template<class T>
+T axis_cmp(const mpud::axes_t<T> &a, const mpud::axes_t<T> &b)
+{
+    T max = abs(a.x - b.x);
+    T v = abs(a.y - b.y);
+    if (v > max) max = v;
+    v = abs(a.z - b.z);
+    if (v > max) max = v;
+    return max;
+}
+
 extern "C" [[noreturn]] void app_main()
 {
     // Initialize NVS
@@ -114,8 +125,8 @@ extern "C" [[noreturn]] void app_main()
     mpud::float_axes_t gyroDPS; // gyro axes in (DPS) º/s format
 
     // Last reported
-    mpud::raw_axes_t accelRawLast; // x, y, z axes as int16
-    mpud::raw_axes_t gyroRawLast;  // x, y, z axes as int16
+    mpud::float_axes_t accelLast; // x, y, z axes as int16
+    mpud::float_axes_t gyroLast;  // x, y, z axes as int16
 
     char json[1024] = {};
 
@@ -136,20 +147,20 @@ extern "C" [[noreturn]] void app_main()
         gyroRaw.y = (int16_t)(gyroRaw.y - gyroCalib.y);
         gyroRaw.z = (int16_t)(gyroRaw.z - gyroCalib.z);
 
+        // Convert
+        accelG = mpud::accelGravity(accelRaw, mpud::ACCEL_FS_4G);
+        gyroDPS = mpud::gyroDegPerSec(gyroRaw, mpud::GYRO_FS_500DPS);
+
         // Compare
-        if (memcmp(accelRaw.xyz, accelRawLast.xyz, sizeof(accelRaw.xyz)) == 0
-            && memcmp(gyroRaw.xyz, gyroRawLast.xyz, sizeof(gyroRaw.xyz)) == 0)
+        if (axis_cmp(accelG, accelLast) < 0.05f
+            && axis_cmp(gyroDPS, gyroLast) < 0.5f)
         {
             continue;
         }
 
         // Store
-        accelRawLast = accelRaw;
-        gyroRawLast = gyroRaw;
-
-        // Convert
-        accelG = mpud::accelGravity(accelRaw, mpud::ACCEL_FS_4G);
-        gyroDPS = mpud::gyroDegPerSec(gyroRaw, mpud::GYRO_FS_500DPS);
+        accelLast = accelG;
+        gyroLast = gyroDPS;
 
         // Debug
         ESP_LOGI(TAG, "accel: [%+6.2f %+6.2f %+6.2f ] (G)\tgyro: [%+7.2f %+7.2f %+7.2f ] (º/s)", accelG.x, accelG.y, accelG.z, gyroDPS.x, gyroDPS.y, gyroDPS.z);
