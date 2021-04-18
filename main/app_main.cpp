@@ -15,7 +15,16 @@ static const char TAG[] = "app_main";
 static esp_websocket_client_handle_t client = nullptr;
 
 extern "C" void app_status_init(esp_websocket_client_handle_t client);
-static void websocket_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
+
+static void websocket_event_handler(__unused void *handler_args, __unused esp_event_base_t base,
+                                    int32_t event_id, void *event_data)
+{
+    auto *data = (esp_websocket_event_data_t *)event_data;
+    if (event_id == WEBSOCKET_EVENT_DATA && data->op_code == 0x1)
+    {
+        ESP_LOGI(TAG, "received data: %.*s", data->data_len, data->data_ptr);
+    }
+}
 
 extern "C" [[noreturn]] void app_main()
 {
@@ -68,6 +77,7 @@ extern "C" [[noreturn]] void app_main()
     mpu.setBus(i2c0);
 
     // Verify
+    // TODO special LED status
     while ((err = mpu.testConnection()) != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to connect to the MPU, error=%#X", err);
@@ -91,21 +101,34 @@ extern "C" [[noreturn]] void app_main()
     }
 
     // Calibrate
+    // TODO calibration data persistence
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
     mpud::raw_axes_t accelCalib;         // x, y, z axes as int16
     mpud::raw_axes_t gyroCalib;          // x, y, z axes as int16
     mpu.motion(&accelCalib, &gyroCalib); // read both in one shot
 
     // Report loop
-    char buffer[1024] = {};
     mpud::raw_axes_t accelRaw;  // x, y, z axes as int16
     mpud::raw_axes_t gyroRaw;   // x, y, z axes as int16
     mpud::float_axes_t accelG;  // accel axes in (g) gravity format
     mpud::float_axes_t gyroDPS; // gyro axes in (DPS) º/s format
 
-//    TickType_t start = xTaskGetTickCount();
+    // Last reported
+    mpud::raw_axes_t accelRawLast; // x, y, z axes as int16
+    mpud::raw_axes_t gyroRawLast;  // x, y, z axes as int16
+
+    char json[1024] = {};
+
+    //    TickType_t start = xTaskGetTickCount();
     while (true)
     {
-        mpu.motion(&accelRaw, &gyroRaw); // read both in one shot
+        // Throttle
+        //vTaskDelayUntil(&start, 30 / portTICK_PERIOD_MS);
+
+        // Read
+        mpu.motion(&accelRaw, &gyroRaw);
+
+        // Adjust according to calibration
         accelRaw.x = (int16_t)(accelRaw.x - accelCalib.x);
         accelRaw.y = (int16_t)(accelRaw.y - accelCalib.y);
         accelRaw.z = (int16_t)(accelRaw.z - accelCalib.z);
@@ -113,44 +136,36 @@ extern "C" [[noreturn]] void app_main()
         gyroRaw.y = (int16_t)(gyroRaw.y - gyroCalib.y);
         gyroRaw.z = (int16_t)(gyroRaw.z - gyroCalib.z);
 
+        // Compare
+        if (memcmp(accelRaw.xyz, accelRawLast.xyz, sizeof(accelRaw.xyz)) == 0
+            && memcmp(gyroRaw.xyz, gyroRawLast.xyz, sizeof(gyroRaw.xyz)) == 0)
+        {
+            continue;
+        }
+
+        // Store
+        accelRawLast = accelRaw;
+        gyroRawLast = gyroRaw;
+
         // Convert
         accelG = mpud::accelGravity(accelRaw, mpud::ACCEL_FS_4G);
         gyroDPS = mpud::gyroDegPerSec(gyroRaw, mpud::GYRO_FS_500DPS);
-        // Debug
-        printf("accel: [%+6.2f %+6.2f %+6.2f ] (G) \t", accelG.x, accelG.y, accelG.z);
-        printf("gyro: [%+7.2f %+7.2f %+7.2f ] (º/s)\n", gyroDPS[0], gyroDPS[1], gyroDPS[2]);
 
+        // Debug
+        ESP_LOGI(TAG, "accel: [%+6.2f %+6.2f %+6.2f ] (G)\tgyro: [%+7.2f %+7.2f %+7.2f ] (º/s)", accelG.x, accelG.y, accelG.z, gyroDPS.x, gyroDPS.y, gyroDPS.z);
+
+        // Report
         if (esp_websocket_client_is_connected(client))
         {
-            snprintf(buffer, sizeof(buffer), "{}");
-            //esp_websocket_client_send_text(client, buffer, (int)strlen(buffer), 1000 / portTICK_PERIOD_MS);
+            int len = snprintf(json, sizeof(json), R"~({"a":[%.3f,%.3f,%.3f],"g":[%.3f,%.3f,%.3f],"m":[]})~", accelG.x, accelG.y, accelG.z, gyroDPS.x, gyroDPS.y, gyroDPS.z);
+            if (len >= 0 && len < sizeof(json))
+            {
+                esp_websocket_client_send_text(client, json, len, 1000 / portTICK_PERIOD_MS);
+            }
+            else
+            {
+                ESP_LOGE(TAG, "json json overflow, needed %d bytes", len);
+            }
         }
-
-        // Throttle
-        //vTaskDelayUntil(&start, 30 / portTICK_PERIOD_MS);
-    }
-}
-
-static void websocket_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
-{
-    auto *data = (esp_websocket_event_data_t *)event_data;
-    switch (event_id)
-    {
-    case WEBSOCKET_EVENT_CONNECTED:
-        ESP_LOGI(TAG, "WEBSOCKET_EVENT_CONNECTED");
-        break;
-    case WEBSOCKET_EVENT_DISCONNECTED:
-        ESP_LOGI(TAG, "WEBSOCKET_EVENT_DISCONNECTED");
-        break;
-    case WEBSOCKET_EVENT_DATA:
-        ESP_LOGI(TAG, "WEBSOCKET_EVENT_DATA");
-        ESP_LOGI(TAG, "Received opcode=%d", data->op_code);
-        ESP_LOGW(TAG, "Total payload length=%d, data_len=%d, current payload offset=%d\r\n", data->payload_len, data->data_len, data->payload_offset);
-        break;
-    case WEBSOCKET_EVENT_ERROR:
-        ESP_LOGI(TAG, "WEBSOCKET_EVENT_ERROR");
-        break;
-    default:
-        break;
     }
 }
