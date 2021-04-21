@@ -179,12 +179,12 @@ extern "C" [[noreturn]] void app_main()
         gyroLast = gyroDPS;
 
         // Debug
-        ESP_LOGI(TAG, "accel: [%+6.2f %+6.2f %+6.2f ] (G)\tgyro: [%+7.2f %+7.2f %+7.2f ] (º/s)", accelG.x, accelG.y, accelG.z, gyroDPS.x, gyroDPS.y, gyroDPS.z);
+        ESP_LOGI(TAG, "accel: [%+6.2f %+6.2f %+6.2f ] (G)\tgyro: [%+7.2f %+7.2f %+7.2f ] (º/s)\tmag: [%7.2f %7.2f %7.2f]", accelG.x, accelG.y, accelG.z, gyroDPS.x, gyroDPS.y, gyroDPS.z, mag.x, mag.y, mag.z);
 
         // Report
         if (esp_websocket_client_is_connected(client))
         {
-            int len = snprintf(json, sizeof(json), R"~({"a":[%.3f,%.3f,%.3f],"g":[%.3f,%.3f,%.3f],"m":[]})~", accelG.x, accelG.y, accelG.z, gyroDPS.x, gyroDPS.y, gyroDPS.z);
+            int len = snprintf(json, sizeof(json), R"~({"a":[%.3f,%.3f,%.3f],"g":[%.3f,%.3f,%.3f],"m":[%.3f,%.3f,%.3f]})~", accelG.x, accelG.y, accelG.z, gyroDPS.x, gyroDPS.y, gyroDPS.z, mag.x, mag.y, mag.z);
             if (len >= 0 && len < sizeof(json))
             {
                 esp_websocket_client_send_text(client, json, len, 1000 / portTICK_PERIOD_MS);
