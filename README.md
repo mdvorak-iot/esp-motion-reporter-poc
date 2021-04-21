@@ -35,6 +35,7 @@ flash the project.
 
 * https://github.com/natanaeljr/esp32-MPU-driver.git
 * https://github.com/natanaeljr/esp32-I2Cbus.git
+* https://github.com/UncleRus/esp-idf-lib.git (HMC5883L)
 * https://github.com/mdvorak-iot/esp-status-led.git
 * https://github.com/mdvorak-iot/esp-wifi-reconnect.git
 * https://github.com/mdvorak-iot/esp-double-reset.git
