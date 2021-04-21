@@ -151,6 +151,8 @@ extern "C" [[noreturn]] void app_main()
         accelG = mpud::accelGravity(accelRaw, mpud::ACCEL_FS_4G);
         gyroDPS = mpud::gyroDegPerSec(gyroRaw, mpud::GYRO_FS_500DPS);
 
+        // TODO data smoothing
+
         // Compare
         if (axis_cmp(accelG, accelLast) < 0.05f
             && axis_cmp(gyroDPS, gyroLast) < 0.5f)

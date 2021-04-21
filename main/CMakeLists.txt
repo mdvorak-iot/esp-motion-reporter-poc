@@ -22,4 +22,5 @@ idf_component_register(
         wifi_reconnect
         app_wifi
         MPUdriver
+        hmc5883l
 )
