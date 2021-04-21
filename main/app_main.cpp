@@ -6,6 +6,7 @@
 #include <esp_ota_ops.h>
 #include <esp_websocket_client.h>
 #include <esp_wifi.h>
+#include <hmc5883l.h>
 #include <mpu/math.hpp>
 #include <nvs_flash.h>
 #include <wifi_reconnect.h>
@@ -13,6 +14,7 @@
 static const char TAG[] = "app_main";
 
 static esp_websocket_client_handle_t client = nullptr;
+static hmc5883l_dev_t hmc5883l = {};
 
 extern "C" void app_status_init(esp_websocket_client_handle_t client);
 
@@ -83,15 +85,22 @@ extern "C" [[noreturn]] void app_main()
     ESP_ERROR_CHECK(wifi_reconnect_start());
 
     // Devices
-    ESP_ERROR_CHECK(i2c0.begin((gpio_num_t)CONFIG_I2C_MASTER_SDA, (gpio_num_t)CONFIG_I2C_MASTER_SCL, CONFIG_I2C_MASTER_FREQUENCY));
+    // TODO special LED status while waiting for devices
+
+    ESP_ERROR_CHECK(hmc5883l_init_desc(&hmc5883l, I2C_NUM_0, (gpio_num_t)CONFIG_I2C_MASTER_SDA, (gpio_num_t)CONFIG_I2C_MASTER_SCL));
+    // NOTE this must be first, since it force-initializes I2C
+    while ((err = hmc5883l_init(&hmc5883l)) != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to connect to the HMC5883L, error=%#X %s", err, esp_err_to_name(err));
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+
     MPU_t mpu;
     mpu.setBus(i2c0);
 
-    // Verify
-    // TODO special LED status
     while ((err = mpu.testConnection()) != ESP_OK)
     {
-        ESP_LOGE(TAG, "Failed to connect to the MPU, error=%#X", err);
+        ESP_LOGE(TAG, "Failed to connect to the MPU, error=%#X %s", err, esp_err_to_name(err));
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     ESP_LOGI(TAG, "MPU connection successful!");
