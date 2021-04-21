@@ -132,6 +132,7 @@ extern "C" [[noreturn]] void app_main()
     mpud::raw_axes_t gyroRaw;   // x, y, z axes as int16
     mpud::float_axes_t accelG;  // accel axes in (g) gravity format
     mpud::float_axes_t gyroDPS; // gyro axes in (DPS) º/s format
+    hmc5883l_data_t mag;        // magnetic sensor
 
     // Last reported
     mpud::float_axes_t accelLast; // x, y, z axes as int16
@@ -146,7 +147,11 @@ extern "C" [[noreturn]] void app_main()
         vTaskDelayUntil(&start, CONFIG_APP_REPORT_INTERVAL / portTICK_PERIOD_MS);
 
         // Read
-        mpu.motion(&accelRaw, &gyroRaw);
+        err = mpu.motion(&accelRaw, &gyroRaw);
+        if (err != ESP_OK) ESP_LOGW(TAG, "failed to read mpu: %d %s", err, esp_err_to_name(err));
+
+        err = hmc5883l_get_data(&hmc5883l, &mag);
+        if (err != ESP_OK) ESP_LOGW(TAG, "failed to read hmc5883l: %d %s", err, esp_err_to_name(err));
 
         // Adjust according to calibration
         accelRaw.x = (int16_t)(accelRaw.x - accelCalib.x);
