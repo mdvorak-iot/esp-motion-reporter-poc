@@ -1,15 +1,11 @@
+#include "app_status.h"
 #include <esp_event.h>
 #include <esp_log.h>
-#include <esp_websocket_client.h>
 #include <freertos/event_groups.h>
 #include <status_led.h>
 #include <wifi_provisioning/manager.h>
 
 static const char TAG[] = "app_status";
-
-static const uint32_t STATUS_LED_CONNECTING_INTERVAL = 500u;
-static const uint32_t STATUS_LED_PROV_INTERVAL = 50u;
-static const uint32_t STATUS_LED_READY_INTERVAL = 100u;
 
 static EventGroupHandle_t event_group = NULL;
 
@@ -65,9 +61,6 @@ void app_status_init(esp_websocket_client_handle_t client)
     esp_err_t err = status_led_create_default();
     if (err == ESP_OK)
     {
-        // Start flashing
-        ESP_ERROR_CHECK_WITHOUT_ABORT(status_led_set_interval(STATUS_LED_DEFAULT, STATUS_LED_CONNECTING_INTERVAL, true));
-
         // Register event handlers
         ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_handler_instance_register(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, wifi_prov_handler, STATUS_LED_DEFAULT, NULL));
         ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_handler_instance_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, disconnected_handler, STATUS_LED_DEFAULT, NULL));

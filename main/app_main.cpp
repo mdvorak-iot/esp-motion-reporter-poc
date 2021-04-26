@@ -1,3 +1,4 @@
+#include "app_status.h"
 #include <MPU.hpp>
 #include <app_wifi.h>
 #include <double_reset.h>
@@ -9,14 +10,13 @@
 #include <hmc5883l.h>
 #include <mpu/math.hpp>
 #include <nvs_flash.h>
+#include <status_led.h>
 #include <wifi_reconnect.h>
 
 static const char TAG[] = "app_main";
 
 static esp_websocket_client_handle_t client = nullptr;
 static hmc5883l_dev_t hmc5883l = {};
-
-extern "C" void app_status_init(esp_websocket_client_handle_t client);
 
 static void websocket_event_handler(__unused void *handler_args, __unused esp_event_base_t base,
                                     int32_t event_id, void *event_data)
@@ -85,13 +85,12 @@ extern "C" [[noreturn]] void app_main()
     ESP_ERROR_CHECK(wifi_reconnect_start());
 
     // Devices
-    // TODO special LED status while waiting for devices
-
     ESP_ERROR_CHECK(hmc5883l_init_desc(&hmc5883l, I2C_NUM_0, (gpio_num_t)CONFIG_I2C_MASTER_SDA, (gpio_num_t)CONFIG_I2C_MASTER_SCL));
     // NOTE this must be first, since it force-initializes I2C
     while ((err = hmc5883l_init(&hmc5883l)) != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to connect to the HMC5883L, error=%#X %s", err, esp_err_to_name(err));
+        status_led_set_interval_for(STATUS_LED_DEFAULT, 0, true, 100, false);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 
@@ -101,6 +100,7 @@ extern "C" [[noreturn]] void app_main()
     while ((err = mpu.testConnection()) != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to connect to the MPU, error=%#X %s", err, esp_err_to_name(err));
+        status_led_set_interval_for(STATUS_LED_DEFAULT, 100, true, 300, false);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     ESP_LOGI(TAG, "MPU connection successful!");
@@ -108,6 +108,7 @@ extern "C" [[noreturn]] void app_main()
     ESP_ERROR_CHECK(mpu.setSampleRate(1000));
 
     // Start
+    ESP_ERROR_CHECK_WITHOUT_ABORT(status_led_set_interval(STATUS_LED_DEFAULT, STATUS_LED_CONNECTING_INTERVAL, true));
     ESP_ERROR_CHECK(app_wifi_start(reconfigure));
     ESP_LOGI(TAG, "starting");
 
