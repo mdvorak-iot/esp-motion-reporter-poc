@@ -7,16 +7,15 @@
 #include <esp_ota_ops.h>
 #include <esp_websocket_client.h>
 #include <esp_wifi.h>
-#include <hmc5883l.h>
 #include <mpu/math.hpp>
 #include <nvs_flash.h>
 #include <status_led.h>
 #include <wifi_reconnect.h>
+#include "app_utils.h"
 
 static const char TAG[] = "app_main";
 
 static esp_websocket_client_handle_t client = nullptr;
-static hmc5883l_dev_t hmc5883l = {};
 
 static void websocket_event_handler(__unused void *handler_args, __unused esp_event_base_t base,
                                     int32_t event_id, void *event_data)
@@ -26,17 +25,6 @@ static void websocket_event_handler(__unused void *handler_args, __unused esp_ev
     {
         ESP_LOGI(TAG, "received data: %.*s", data->data_len, data->data_ptr);
     }
-}
-
-template<class T>
-T axis_cmp(const mpud::axes_t<T> &a, const mpud::axes_t<T> &b)
-{
-    T max = abs(a.x - b.x);
-    T v = abs(a.y - b.y);
-    if (v > max) max = v;
-    v = abs(a.z - b.z);
-    if (v > max) max = v;
-    return max;
 }
 
 extern "C" [[noreturn]] void app_main()
@@ -85,15 +73,6 @@ extern "C" [[noreturn]] void app_main()
     ESP_ERROR_CHECK(wifi_reconnect_start());
 
     // Devices
-    ESP_ERROR_CHECK(hmc5883l_init_desc(&hmc5883l, I2C_NUM_0, (gpio_num_t)CONFIG_I2C_MASTER_SDA, (gpio_num_t)CONFIG_I2C_MASTER_SCL));
-    // NOTE this must be first, since it force-initializes I2C
-    while ((err = hmc5883l_init(&hmc5883l)) != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Failed to connect to the HMC5883L, error=%#X %s", err, esp_err_to_name(err));
-        status_led_set_interval_for(STATUS_LED_DEFAULT, 0, true, 100, false);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-
     MPU_t mpu;
     mpu.setBus(i2c0);
 
@@ -133,7 +112,6 @@ extern "C" [[noreturn]] void app_main()
     mpud::raw_axes_t gyroRaw;   // x, y, z axes as int16
     mpud::float_axes_t accelG;  // accel axes in (g) gravity format
     mpud::float_axes_t gyroDPS; // gyro axes in (DPS) º/s format
-    hmc5883l_data_t mag;        // magnetic sensor
 
     // Last reported
     mpud::float_axes_t accelLast; // x, y, z axes as int16
@@ -148,11 +126,8 @@ extern "C" [[noreturn]] void app_main()
         vTaskDelayUntil(&start, CONFIG_APP_REPORT_INTERVAL / portTICK_PERIOD_MS);
 
         // Read
-        err = mpu.motion(&accelRaw, &gyroRaw);
+        err = mpu.sensors(&accelRaw, &gyroRaw);
         if (err != ESP_OK) ESP_LOGW(TAG, "failed to read mpu: %d %s", err, esp_err_to_name(err));
-
-        err = hmc5883l_get_data(&hmc5883l, &mag);
-        if (err != ESP_OK) ESP_LOGW(TAG, "failed to read hmc5883l: %d %s", err, esp_err_to_name(err));
 
         // Adjust according to calibration
         accelRaw.x = (int16_t)(accelRaw.x - accelCalib.x);
