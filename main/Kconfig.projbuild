@@ -3,7 +3,7 @@ menu "Application config"
         string "WebSocket server URL"
         default "ws://echo.websocket.org"
 
-    config APP_REPORT_INTERVAL
+    config APP_REPORT_INTERVAL_MS
         int "Interval in ms"
         default 30
 

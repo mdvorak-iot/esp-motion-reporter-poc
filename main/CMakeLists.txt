@@ -21,6 +21,6 @@ idf_component_register(
         status_led
         wifi_reconnect
         app_wifi
-        MPUdriver
-        hmc5883l
+        mpu9250
+        ahrs
 )

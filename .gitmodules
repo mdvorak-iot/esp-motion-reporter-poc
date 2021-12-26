@@ -11,3 +11,6 @@
 [submodule "app_wifi"]
 	path = components/app_wifi
 	url = https://github.com/mdvorak-iot/esp-app-wifi.git
+[submodule "esp-mpu9250"]
+	path = libs/esp-mpu9250
+	url = https://github.com/psiphi75/esp-mpu9250.git
