@@ -3,21 +3,7 @@ menu "Application config"
         string "WebSocket server URL"
         default "ws://echo.websocket.org"
 
-    config APP_REPORT_INTERVAL_MS
-        int "Interval in ms"
-        default 30
-
-    menu "I2C Master"
-        config I2C_MASTER_SCL
-            int "SCL GPIO Num"
-            default 22
-            help
-                GPIO number for I2C Master clock line.
-
-        config I2C_MASTER_SDA
-            int "SDA GPIO Num"
-            default 21
-            help
-                GPIO number for I2C Master data line.
-    endmenu
+    config APP_REPORT_BATCH_SIZE
+        int "Report to server every N records"
+        default 50
 endmenu
