@@ -30,7 +30,6 @@ struct reading
     vector_t va;
     vector_t vg;
     vector_t vm;
-    float temp;
 };
 
 // DEBUG
@@ -161,20 +160,13 @@ void app_main()
     {
         // Get the Accelerometer, Gyroscope and Magnetometer values.
         esp_err_t err = get_accel_gyro_mag(&data[readings].va, &data[readings].vg, &data[readings].vm);
-        if (err != ESP_OK)
-        {
-            memset(&data[readings], 0, sizeof(struct reading));
-            ESP_LOGE(TAG, "get_accel_gyro_mag failed: %d %s", err, esp_err_to_name(err));
-        }
+        // if (err != ESP_OK)
+        // {
+        //     memset(&data[readings], 0, sizeof(struct reading));
+        //     ESP_LOGE(TAG, "get_accel_gyro_mag failed: %d %s", err, esp_err_to_name(err));
+        // }
 
-        err = get_temperature_celsius(&data[readings].temp);
-        if (err != ESP_OK)
-        {
-            data[readings].temp = NAN;
-            ESP_LOGE(TAG, "get_temperature_celsius failed: %d %s", err, esp_err_to_name(err));
-        }
-
-        data[readings].time = time(NULL);
+        // data[readings].time = time(NULL);
 
         // Apply the AHRS algorithm
         // MadgwickAHRSupdate(DEG2RAD(vg.x), DEG2RAD(vg.y), DEG2RAD(vg.z),
