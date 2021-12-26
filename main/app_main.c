@@ -62,14 +62,14 @@ static void do_report(struct reading *data, size_t len)
 
     for (size_t i = 0; i < len; i++)
     {
-        ptr = util_append(json, end, "%c{\"t\":%ld,\"ax\":%.3f,\"ay\":%.3f,\"az\":%.3f,\"gx\":%.3f,\"gy\":%.3f,\"gz\":%.3f,\"mx\":%.3f,\"my\":%.3f,\"mz\":%.3f}",
+        ptr = util_append(ptr, end, "%c{\"t\":%ld,\"ax\":%.3f,\"ay\":%.3f,\"az\":%.3f,\"gx\":%.3f,\"gy\":%.3f,\"gz\":%.3f,\"mx\":%.3f,\"my\":%.3f,\"mz\":%.3f}",
                           sep, data[i].time,
                           data[i].va.x, data[i].va.y, data[i].va.z,
                           data[i].vg.x, data[i].vg.y, data[i].vg.z,
                           data[i].vm.x, data[i].vm.y, data[i].vm.z);
         sep = ',';
     }
-    ptr = util_append(json, end, "]");
+    ptr = util_append(ptr, end, "]");
 
     if (ptr != NULL)
     {
