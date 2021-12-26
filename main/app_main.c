@@ -102,7 +102,7 @@ void app_main()
 
     // Devices
     ESP_ERROR_CHECK(i2c_mpu9250_init(&cal));
-    MadgwickAHRSinit(CONFIG_SAMPLE_RATE_Hz, 0.8);
+    MadgwickAHRSinit(200, 0.8);
     ESP_LOGI(TAG, "MPU initialized");
 
     // Start
