@@ -154,19 +154,21 @@ void app_main()
     // Report loop
     TickType_t last_collect = xTaskGetTickCount();
     size_t readings = 0;
-    struct reading data[APP_REPORT_BATCH_SIZE] = {};
+    struct reading *data = (struct reading *)malloc(APP_REPORT_BATCH_SIZE * sizeof(struct reading));
+
+    ESP_LOGI(TAG, "running");
 
     while (true)
     {
         // Get the Accelerometer, Gyroscope and Magnetometer values.
         esp_err_t err = get_accel_gyro_mag(&data[readings].va, &data[readings].vg, &data[readings].vm);
-        // if (err != ESP_OK)
-        // {
-        //     memset(&data[readings], 0, sizeof(struct reading));
-        //     ESP_LOGE(TAG, "get_accel_gyro_mag failed: %d %s", err, esp_err_to_name(err));
-        // }
+        if (err != ESP_OK)
+        {
+            memset(&data[readings], 0, sizeof(struct reading));
+            ESP_LOGE(TAG, "get_accel_gyro_mag failed: %d %s", err, esp_err_to_name(err));
+        }
 
-        // data[readings].time = time(NULL);
+        data[readings].time = time(NULL);
 
         // Apply the AHRS algorithm
         // MadgwickAHRSupdate(DEG2RAD(vg.x), DEG2RAD(vg.y), DEG2RAD(vg.z),
@@ -180,9 +182,11 @@ void app_main()
             do_report(data, readings);
             readings = 0;
         }
-
-        // Advance in history
-        readings++;
+        else
+        {
+            // Advance in history
+            readings++;
+        }
 
         // Throttle
         vTaskDelayUntil(&last_collect, SAMPLE_INTERVAL_MS / portTICK_PERIOD_MS);
