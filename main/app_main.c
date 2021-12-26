@@ -49,37 +49,38 @@ static void do_report(struct reading *data, size_t len)
     // MadgwickGetEulerAnglesDegrees(&heading, &pitch, &roll);
     // ESP_LOGI(TAG, "heading: %2.3f°, pitch: %2.3f°, roll: %2.3f°, Temp %2.3f°C", heading, pitch, roll, temp);
 
-    if (esp_websocket_client_is_connected(client))
+    // if (esp_websocket_client_is_connected(client))
+    // {
+    // NOTE make it static to just reuse the buffer every time, no race-condition here, since it is running in single loop
+    static char json[4096] = {};
+
+    char *ptr = json;
+    const char *end = json + sizeof(json);
+
+    *ptr = '\0';
+    char sep = '[';
+
+    for (size_t i = 0; i < len; i++)
     {
-        // NOTE make it static to just reuse the buffer every time, no race-condition here, since it is running in single loop
-        static char json[4096] = {};
-
-        char *ptr = json;
-        const char *end = json + sizeof(json);
-
-        char sep = '[';
-
-        for (size_t i = 0; i < len; i++)
-        {
-            ptr = util_append(json, end, "%c{\"t\":%ld,\"ax\":%.3f,\"ay\":%.3f,\"az\":%.3f,\"gx\":%.3f,\"gy\":%.3f,\"gz\":%.3f,\"mx\":%.3f,\"my\":%.3f,\"mz\":%.3f}",
-                              sep, data[i].time,
-                              data[i].va.x, data[i].va.y, data[i].va.z,
-                              data[i].vg.x, data[i].vg.y, data[i].vg.z,
-                              data[i].vm.x, data[i].vm.y, data[i].vm.z);
-            sep = ',';
-        }
-        ptr = util_append(json, end, "]");
-
-        if (ptr != NULL)
-        {
-            ESP_LOGI(TAG, "%s", ptr);
-            esp_websocket_client_send_text(client, json, len, 1000 / portTICK_PERIOD_MS);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "json json overflow, needed %d bytes", len);
-        }
+        ptr = util_append(json, end, "%c{\"t\":%ld,\"ax\":%.3f,\"ay\":%.3f,\"az\":%.3f,\"gx\":%.3f,\"gy\":%.3f,\"gz\":%.3f,\"mx\":%.3f,\"my\":%.3f,\"mz\":%.3f}",
+                          sep, data[i].time,
+                          data[i].va.x, data[i].va.y, data[i].va.z,
+                          data[i].vg.x, data[i].vg.y, data[i].vg.z,
+                          data[i].vm.x, data[i].vm.y, data[i].vm.z);
+        sep = ',';
     }
+    ptr = util_append(json, end, "]");
+
+    if (ptr != NULL)
+    {
+        ESP_LOGI(TAG, "%s", json);
+        // esp_websocket_client_send_text(client, json, len, 1000 / portTICK_PERIOD_MS);
+    }
+    else
+    {
+        ESP_LOGE(TAG, "json json overflow, needed %d bytes", len);
+    }
+    // }
 }
 
 void app_main()
