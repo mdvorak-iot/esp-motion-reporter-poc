@@ -52,7 +52,8 @@ static void do_report(struct reading *data, size_t len)
     // if (esp_websocket_client_is_connected(client))
     // {
     // NOTE make it static to just reuse the buffer every time, no race-condition here, since it is running in single loop
-    static char json[4096] = {};
+    // Also, making it static allocates it on heap instead of stack
+    static char json[APP_REPORT_BATCH_SIZE * 100] = {};
 
     char *ptr = json;
     const char *end = json + sizeof(json);
@@ -62,7 +63,7 @@ static void do_report(struct reading *data, size_t len)
 
     for (size_t i = 0; i < len; i++)
     {
-        ptr = util_append(ptr, end, "%c{\"t\":%ld,\"ax\":%.3f,\"ay\":%.3f,\"az\":%.3f,\"gx\":%.3f,\"gy\":%.3f,\"gz\":%.3f,\"mx\":%.3f,\"my\":%.3f,\"mz\":%.3f}",
+        ptr = util_append(ptr, end, "%c{\"t\":%ld,\"a\":[%.3g,%.3g,%.3g],\"g\":[%.3g,%.3g,%.3g],\"m\":[%.3g,%.3g,%.3g]}",
                           sep, data[i].time,
                           data[i].va.x, data[i].va.y, data[i].va.z,
                           data[i].vg.x, data[i].vg.y, data[i].vg.z,
@@ -78,12 +79,12 @@ static void do_report(struct reading *data, size_t len)
     }
     else
     {
-        ESP_LOGE(TAG, "json json overflow, needed %d bytes", len);
+        ESP_LOGE(TAG, "json buffer overflow");
     }
     // }
 }
 
-void app_main()
+_Noreturn void app_main()
 {
     // Initialize NVS
     esp_err_t err = nvs_flash_init();
@@ -135,7 +136,7 @@ void app_main()
 
     // Devices
     ESP_ERROR_CHECK(i2c_mpu9250_init(&cal));
-    MadgwickAHRSinit(CONFIG_SAMPLE_RATE_Hz, 0.8);
+    //MadgwickAHRSinit(CONFIG_SAMPLE_RATE_Hz, 0.8);
     ESP_LOGI(TAG, "MPU initialized");
 
     // Start
@@ -143,7 +144,7 @@ void app_main()
     ESP_ERROR_CHECK(app_wifi_start(reconfigure));
     ESP_LOGI(TAG, "starting");
 
-    // Wait for WiFi
+    // Wait for Wi-Fi
     wifi_reconnect_wait_for_connection(CONFIG_APP_WIFI_PROV_TIMEOUT_S * 1000 + CONFIG_WIFI_RECONNECT_CONNECT_TIMEOUT_MS);
 
     ESP_ERROR_CHECK(esp_websocket_client_start(client));
@@ -162,7 +163,7 @@ void app_main()
     while (true)
     {
         // Get the Accelerometer, Gyroscope and Magnetometer values.
-        esp_err_t err = get_accel_gyro_mag(&data[readings].va, &data[readings].vg, &data[readings].vm);
+        err = get_accel_gyro_mag(&data[readings].va, &data[readings].vg, &data[readings].vm);
         if (err != ESP_OK)
         {
             memset(&data[readings], 0, sizeof(struct reading));
