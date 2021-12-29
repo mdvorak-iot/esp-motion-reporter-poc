@@ -45,43 +45,73 @@ static void websocket_event_handler(__unused void *handler_args, __unused esp_ev
 
 static void do_report(struct reading *data, size_t len)
 {
-    // float heading, pitch, roll;
-    // MadgwickGetEulerAnglesDegrees(&heading, &pitch, &roll);
-    // ESP_LOGI(TAG, "heading: %2.3f°, pitch: %2.3f°, roll: %2.3f°, Temp %2.3f°C", heading, pitch, roll, temp);
+    //    float heading, pitch, roll;
+    //    MadgwickGetEulerAnglesDegrees(&heading, &pitch, &roll);
+    //    ESP_LOGI(TAG, "heading: %2.3f°, pitch: %2.3f°, roll: %2.3f°", heading, pitch, roll);
 
-    // if (esp_websocket_client_is_connected(client))
-    // {
-    // NOTE make it static to just reuse the buffer every time, no race-condition here, since it is running in single loop
-    // Also, making it static allocates it on heap instead of stack
-    static char json[APP_REPORT_BATCH_SIZE * 100] = {};
-
-    char *ptr = json;
-    const char *end = json + sizeof(json);
-
-    *ptr = '\0';
-    char sep = '[';
-
-    for (size_t i = 0; i < len; i++)
     {
-        ptr = util_append(ptr, end, "%c{\"t\":%ld,\"a\":[%.3g,%.3g,%.3g],\"g\":[%.3g,%.3g,%.3g],\"m\":[%.3g,%.3g,%.3g]}",
-                          sep, data[i].time,
-                          data[i].va.x, data[i].va.y, data[i].va.z,
-                          data[i].vg.x, data[i].vg.y, data[i].vg.z,
-                          data[i].vm.x, data[i].vm.y, data[i].vm.z);
-        sep = ',';
-    }
-    ptr = util_append(ptr, end, "]");
+        vector_t va;
+        vector_t vg;
+        vector_t vm;
+        for (size_t i = 0; i < len; i++)
+        {
+            va.x += data[i].va.x;
+            va.y += data[i].va.y;
+            va.z += data[i].va.z;
+            vg.x += data[i].vg.x;
+            vg.y += data[i].vg.y;
+            vg.z += data[i].vg.z;
+            vm.x += data[i].vm.x;
+            vm.y += data[i].vm.y;
+            vm.z += data[i].vm.z;
+        }
 
-    if (ptr != NULL)
-    {
-        ESP_LOGI(TAG, "%s", json);
-        // esp_websocket_client_send_text(client, json, len, 1000 / portTICK_PERIOD_MS);
+        vm.x = vm.x / (float)len;
+        vm.y = vm.y / (float)len;
+        vm.z = vm.z / (float)len;
+
+        ESP_LOGI(TAG, "{\"t\":%ld,\"a\":[%.3g,%.3g,%.3g],\"g\":[%.3g,%.3g,%.3g],\"m\":[%.3g,%.3g,%.3g]}",
+                 data[0].time,
+                 va.x, va.y, va.z,
+                 vg.x, vg.y, vg.z,
+                 vm.x, vm.y, vm.z);
     }
-    else
+
+    if (esp_websocket_client_is_connected(client))
     {
-        ESP_LOGE(TAG, "json buffer overflow");
+        // NOTE make it static to just reuse the buffer every time, no race-condition here, since it is running in single loop
+        // Also, making it static allocates it on heap instead of stack
+        static char json[APP_REPORT_BATCH_SIZE * 100] = {};
+
+        char *ptr = json;
+        const char *end = json + sizeof(json);
+
+        *ptr = '\0';
+        char sep = '[';
+
+        for (size_t i = 0; i < len; i++)
+        {
+            ptr = util_append(ptr, end, "%c{\"t\":%ld,\"a\":[%.3g,%.3g,%.3g],\"g\":[%.3g,%.3g,%.3g],\"m\":[%.3g,%.3g,%.3g]}",
+                              sep, data[i].time,
+                              data[i].va.x, data[i].va.y, data[i].va.z,
+                              data[i].vg.x, data[i].vg.y, data[i].vg.z,
+                              data[i].vm.x, data[i].vm.y, data[i].vm.z);
+            sep = ',';
+        }
+        ptr = util_append(ptr, end, "]");
+
+        if (ptr != NULL)
+        {
+            int json_len = (int)(ptr - json);
+            ESP_LOGD(TAG, "%.*s", json_len, json);
+
+            esp_websocket_client_send_text(client, json, json_len, 1000 / portTICK_PERIOD_MS);
+        }
+        else
+        {
+            ESP_LOGE(TAG, "json buffer overflow");
+        }
     }
-    // }
 }
 
 _Noreturn void app_main()
@@ -131,13 +161,30 @@ _Noreturn void app_main()
     ESP_ERROR_CHECK(wifi_reconnect_start());
 
     // NTP
+#ifdef LWIP_DHCP_GET_NTP_SRV
+    sntp_servermode_dhcp(1); // accept NTP offers from DHCP server, if any
+#endif
+#if LWIP_DHCP_GET_NTP_SRV && SNTP_MAX_SERVERS > 1
+    sntp_setservername(1, "pool.ntp.org");
+#else
+    // otherwise, use DNS address from a pool
+    sntp_setservername(0, "pool.ntp.org");
+#endif
+
     sntp_set_sync_mode(SNTP_SYNC_MODE_SMOOTH);
     sntp_init();
 
+    // TODO
+    //    calibrate_accel();
+    //    calibrate_gyro();
+    //    calibrate_mag();
+    //    vTaskDelay(10000);
+
     // Devices
     ESP_ERROR_CHECK(i2c_mpu9250_init(&cal));
-    //MadgwickAHRSinit(CONFIG_SAMPLE_RATE_Hz, 0.8);
-    ESP_LOGI(TAG, "MPU initialized");
+    ESP_ERROR_CHECK(set_accel_filter(5));
+    MadgwickAHRSinit(CONFIG_SAMPLE_RATE_Hz, 0.8f);
+    ESP_LOGI(TAG, "mpu initialized");
 
     // Start
     ESP_ERROR_CHECK_WITHOUT_ABORT(status_led_set_interval(STATUS_LED_DEFAULT, STATUS_LED_CONNECTING_INTERVAL, true));
@@ -153,12 +200,28 @@ _Noreturn void app_main()
     //     vTaskDelay(100 / portTICK_PERIOD_MS);
     // }
 
+    // Wait for NTP for 10 sec (after boot)
+    ESP_LOGI(TAG, "waiting for NTP");
+    while (time(NULL) < 10)
+    {
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
+
+    // Log start time
+    {
+        time_t now = time(NULL);
+        struct tm tm;
+        localtime_r(&now, &tm);
+        char now_str[30] = {};
+
+        strftime(now_str, sizeof(now_str), "%x %X %Z", &tm);
+        ESP_LOGI(TAG, "running at %s", now_str);
+    }
+
     // Report loop
     TickType_t last_collect = xTaskGetTickCount();
     size_t readings = 0;
     struct reading *data = (struct reading *)malloc(APP_REPORT_BATCH_SIZE * sizeof(struct reading));
-
-    ESP_LOGI(TAG, "running");
 
     while (true)
     {
@@ -173,9 +236,9 @@ _Noreturn void app_main()
         data[readings].time = time(NULL);
 
         // Apply the AHRS algorithm
-        // MadgwickAHRSupdate(DEG2RAD(vg.x), DEG2RAD(vg.y), DEG2RAD(vg.z),
-        //                    va.x, va.y, va.z,
-        //                    vm.x, vm.y, vm.z);
+        MadgwickAHRSupdate(DEG2RAD(data[readings].vg.x), DEG2RAD(data[readings].vg.y), DEG2RAD(data[readings].vg.z),
+                           data[readings].va.x, data[readings].va.y, data[readings].va.z,
+                           data[readings].vm.x, data[readings].vm.y, data[readings].vm.z);
 
         // Print the data every N ms
         if (readings >= APP_REPORT_BATCH_SIZE - 1)
