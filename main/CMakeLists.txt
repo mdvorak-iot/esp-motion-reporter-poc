@@ -23,7 +23,7 @@ idf_component_register(
         app_update
         wifi_provisioning
         esp_websocket_client
-        double_reset
+        button
         status_led
         wifi_reconnect
         app_wifi

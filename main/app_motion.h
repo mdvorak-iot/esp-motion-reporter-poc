@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-void motion_sensors_init();
+esp_err_t motion_sensors_init();
 
 void motion_sensors_loop(esp_websocket_client_handle_t client);
 

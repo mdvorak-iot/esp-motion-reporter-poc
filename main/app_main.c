@@ -1,10 +1,10 @@
 #include "app_motion.h"
 #include "app_status.h"
 #include <app_wifi.h>
-#include <double_reset.h>
+#include <button.h>
 #include <esp_event.h>
 #include <esp_log.h>
-#include <esp_ota_ops.h>
+#include <esp_sleep.h>
 #include <esp_sntp.h>
 #include <esp_websocket_client.h>
 #include <esp_wifi.h>
@@ -19,6 +19,7 @@ static const char TAG[] = "app_main";
 #define SAMPLE_INTERVAL_MS (1000 / CONFIG_SAMPLE_RATE_Hz) // Sample interval in milliseconds
 
 static esp_websocket_client_handle_t client = NULL;
+static RTC_DATA_ATTR bool provision = false;
 
 // DEBUG
 static void websocket_event_handler(__unused void *handler_args, __unused esp_event_base_t base,
@@ -28,6 +29,32 @@ static void websocket_event_handler(__unused void *handler_args, __unused esp_ev
     if (event_id == WEBSOCKET_EVENT_DATA && data->op_code == 0x1)
     {
         ESP_LOGI(TAG, "received data: %.*s", data->data_len, data->data_ptr);
+    }
+}
+
+static void provision_wifi()
+{
+    // Set RTC stored variable and deep sleep, which will essentially restart the code
+    provision = true;
+    esp_deep_sleep(1000);
+}
+
+static void control_button_handler(__unused void *arg, const struct button_data *data)
+{
+    if (data->event == BUTTON_EVENT_PRESSED && data->long_press)
+    {
+        // Calibrate
+        // TODO
+    }
+    else if (data->event == BUTTON_EVENT_RELEASED && data->press_length_ms > 3000 && !data->long_press)
+    {
+        // Provision Wi-Fi
+        provision_wifi();
+    }
+    else if (data->event == BUTTON_EVENT_RELEASED)
+    {
+        // Toggle display
+        // TODO
     }
 }
 
@@ -44,11 +71,19 @@ _Noreturn void app_main()
 
     // System services
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+    ESP_ERROR_CHECK(gpio_install_isr_service(0));
 
-    // Check double reset
-    // NOTE this should be called as soon as possible, ideally right after nvs init
-    bool reconfigure = false;
-    ESP_ERROR_CHECK_WITHOUT_ABORT(double_reset_start(&reconfigure, DOUBLE_RESET_DEFAULT_TIMEOUT));
+    // Control button
+    // TODO config
+    struct button_config control_btn_cfg = {
+        .level = BUTTON_LEVEL_LOW_ON_PRESS,
+        .internal_pull = false,
+        .long_press_ms = 10000,
+        .on_press = control_button_handler,
+        .on_release = control_button_handler,
+        .arg = NULL,
+    };
+    ESP_ERROR_CHECK(button_config(GPIO_NUM_0, &control_btn_cfg, NULL));
 
     // WebSocket client
     esp_websocket_client_config_t websocket_cfg = {};
@@ -87,13 +122,18 @@ _Noreturn void app_main()
     sntp_set_sync_mode(SNTP_SYNC_MODE_SMOOTH);
     sntp_init();
 
-    // Devices
-    motion_sensors_init();
-
     // Start
     ESP_ERROR_CHECK_WITHOUT_ABORT(status_led_set_interval(STATUS_LED_DEFAULT, STATUS_LED_CONNECTING_INTERVAL, true));
-    ESP_ERROR_CHECK(app_wifi_start(reconfigure));
+    ESP_ERROR_CHECK(app_wifi_start(provision));
+    provision = false; // Reset RTC flag
     ESP_LOGI(TAG, "starting");
+
+    // Devices
+    err = motion_sensors_init();
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "failed to initialize mpu: %d %s", err, esp_err_to_name(err));
+    }
 
     // Wait for Wi-Fi
     wifi_reconnect_wait_for_connection(CONFIG_APP_WIFI_PROV_TIMEOUT_S * 1000 + CONFIG_WIFI_RECONNECT_CONNECT_TIMEOUT_MS);

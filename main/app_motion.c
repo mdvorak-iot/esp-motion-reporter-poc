@@ -28,7 +28,7 @@ struct reading
     vector_t vm;
 };
 
-void motion_sensors_init()
+esp_err_t motion_sensors_init()
 {
     // TODO
     //    calibrate_accel();
@@ -37,9 +37,15 @@ void motion_sensors_init()
     //    vTaskDelay(10000);
 
     // Devices
-    ESP_ERROR_CHECK(i2c_mpu9250_init(&cal));
+    esp_err_t err = i2c_mpu9250_init(&cal);
+    if (err != ESP_OK)
+    {
+        return err;
+    }
+
     //    MadgwickAHRSinit(CONFIG_SAMPLE_RATE_Hz, 0.8f);
     ESP_LOGI(TAG, "mpu initialized");
+    return ESP_OK;
 }
 
 static void do_report(esp_websocket_client_handle_t client, struct reading *data, size_t len)
@@ -122,16 +128,16 @@ void motion_sensors_loop(esp_websocket_client_handle_t client)
     esp_err_t err = get_accel_gyro_mag(&data[readings].va, &data[readings].vg, &data[readings].vm);
     if (err != ESP_OK)
     {
-        memset(&data[readings], 0, sizeof(struct reading));
         ESP_LOGE(TAG, "get_accel_gyro_mag failed: %d %s", err, esp_err_to_name(err));
+        return;
     }
 
     data[readings].time = time(NULL);
 
     // Apply the AHRS algorithm
-    MadgwickAHRSupdate(DEG2RAD(data[readings].vg.x), DEG2RAD(data[readings].vg.y), DEG2RAD(data[readings].vg.z),
-                       data[readings].va.x, data[readings].va.y, data[readings].va.z,
-                       data[readings].vm.x, data[readings].vm.y, data[readings].vm.z);
+    //    MadgwickAHRSupdate(DEG2RAD(data[readings].vg.x), DEG2RAD(data[readings].vg.y), DEG2RAD(data[readings].vg.z),
+    //                       data[readings].va.x, data[readings].va.y, data[readings].va.z,
+    //                       data[readings].vm.x, data[readings].vm.y, data[readings].vm.z);
 
     // Print the data every N ms
     if (readings >= APP_REPORT_BATCH_SIZE - 1)

@@ -14,3 +14,6 @@
 [submodule "esp-mpu9250"]
 	path = libs/esp-mpu9250
 	url = https://github.com/mdvorak-iot/esp-mpu9250.git
+[submodule "components/button"]
+	path = components/button
+	url = https://github.com/mdvorak-iot/esp-button.git
