@@ -5,8 +5,14 @@ if (CONFIG_BT_ENABLED)
 endif ()
 
 idf_component_register(
-        SRC_DIRS .
+        SRCS
+        app_main.c
+        app_motion.c
+        app_status.c
+        util_append.c
+
         INCLUDE_DIRS .
+
         REQUIRES
         ${OPTIONAL_REQUIRES}
         freertos
