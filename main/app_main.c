@@ -1,7 +1,5 @@
 #include "app_motion.h"
 #include "app_status.h"
-#include "util_append.h"
-#include <MadgwickAHRS.h>
 #include <app_wifi.h>
 #include <double_reset.h>
 #include <esp_event.h>
@@ -51,10 +49,6 @@ _Noreturn void app_main()
     // NOTE this should be called as soon as possible, ideally right after nvs init
     bool reconfigure = false;
     ESP_ERROR_CHECK_WITHOUT_ABORT(double_reset_start(&reconfigure, DOUBLE_RESET_DEFAULT_TIMEOUT));
-
-    // App info
-    esp_app_desc_t app_info = {};
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_ota_get_partition_description(esp_ota_get_running_partition(), &app_info));
 
     // WebSocket client
     esp_websocket_client_config_t websocket_cfg = {};
