@@ -33,7 +33,7 @@ dependencies:
     source:
       git: https://github.com/mdvorak/esp-wifi-auto-prov.git
       type: git
-    version: c879bb3350d9d16ab84879cc92f17d14eeefa463
+    version: 7750f4ca8d8d4e9111779c2f3e56ef33eb2d8d4f
   wifi_reconnect:
     component_hash: 63495552cc79fa2cb960f1dfab72b92937666247a95563b77c91aa3cc8c5b888
     source:
