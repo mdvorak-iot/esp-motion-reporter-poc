@@ -31,12 +31,3 @@ idf.py -b 921600 build flash monitor
 As an alternative, you can use [PlatformIO](https://docs.platformio.org/en/latest/core/installation.html) to build and
 flash the project.
 
-## Dependencies
-
-* https://github.com/natanaeljr/esp32-MPU-driver.git
-* https://github.com/natanaeljr/esp32-I2Cbus.git
-* https://github.com/UncleRus/esp-idf-lib.git (HMC5883L)
-* https://github.com/mdvorak-iot/esp-status-led.git
-* https://github.com/mdvorak-iot/esp-wifi-reconnect.git
-* https://github.com/mdvorak-iot/esp-double-reset.git
-* https://github.com/mdvorak-iot/esp-app-wifi.git
