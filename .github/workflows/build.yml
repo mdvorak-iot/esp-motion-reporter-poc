@@ -38,7 +38,6 @@ jobs:
       - name: Build
         env:
           IDF_TARGET: ${{ matrix.idf_target }}
-        working-directory: example
         run: |
           # Switch to SoftAP provisioning for esp32s2 
           if [ ${{ matrix.idf_target == 'esp32s2' }} ]; then
@@ -70,4 +69,4 @@ jobs:
           pip install --upgrade idf-component-manager
 
       - name: Build
-        run: platformio run -d example
+        run: platformio run
