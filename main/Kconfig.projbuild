@@ -1,7 +1,7 @@
 menu "Application config"
     config APP_DEVICE_NAME
         string "Device name"
-        default "app_template"
+        default "Motion_Reporter"
         help
             Default name of the device, used in provisioning and as a hostname.
 
