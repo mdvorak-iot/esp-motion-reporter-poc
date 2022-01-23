@@ -22,6 +22,8 @@ idf_component_register(
         status_led
         wifi_reconnect
         wifi_auto_prov
+        u8g2
+        u8g2_hal
 #        mpu9250
 #        ahrs
 )

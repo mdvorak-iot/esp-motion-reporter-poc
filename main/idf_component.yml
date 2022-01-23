@@ -15,3 +15,7 @@ dependencies:
     git: https://github.com/mdvorak/esp-wifi-reconnect.git
   status_led:
     git: https://github.com/mdvorak-iot/esp-status-led.git
+  u8g2:
+    git: https://github.com/olikraus/u8g2.git
+  u8g2_hal:
+    git: https://github.com/mdvorak/esp-u8g2-hal.git

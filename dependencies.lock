@@ -16,6 +16,18 @@ dependencies:
       git: https://github.com/mdvorak-iot/esp-status-led.git
       type: git
     version: e74a7d79b951f166e5237c2a9f82c78337a9dfd1
+  u8g2:
+    component_hash: 4a9322204b3a207b23b99f0ef3bc35e83e94003cac173aa94ef11883b849a1a1
+    source:
+      git: https://github.com/olikraus/u8g2.git
+      type: git
+    version: ef9fa9f8f8aaa7767c7dd959dcf512433ddc2047
+  u8g2_hal:
+    component_hash: 17861e3183b33a069671d4c0402d0efd32bf4d68be7240fbe18a64e77a075f23
+    source:
+      git: https://github.com/mdvorak/esp-u8g2-hal.git
+      type: git
+    version: 39e95a95a3d4b02900b4aa5368a5b44bd4087ad6
   wifi_auto_prov:
     component_hash: 9ecdc982e3de02165e2c72f0197ece3af40ff20fff52a7ba0638d76c9e361a8d
     source:
@@ -28,6 +40,6 @@ dependencies:
       git: https://github.com/mdvorak/esp-wifi-reconnect.git
       type: git
     version: aaab0c67827e2a20f0a42c62e259eba59d81008b
-manifest_hash: fa50b633ba24d65ced41eb8a64d4040621cbf0e686ee11d833cc6f3ae12a1128
+manifest_hash: 638728bafb3fa8a1c78b105f46321e403f057e211e33ea81b511a80c0d2c0340
 target: esp32
 version: 1.0.0

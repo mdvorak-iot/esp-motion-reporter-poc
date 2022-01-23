@@ -11,6 +11,8 @@
 #include <esp_wifi.h>
 #include <math.h>
 #include <nvs_flash.h>
+#include <u8g2_esp32_hal.h>
+#include <u8x8.h>
 #include <wifi_auto_prov.h>
 #include <wifi_reconnect.h>
 
@@ -27,6 +29,7 @@ static const char TAG[] = "app_main";
 #define SAMPLE_INTERVAL_MS (1000 / 30) // Sample interval in milliseconds
 
 static RTC_DATA_ATTR bool force_provisioning = false;
+static u8x8_t display = {};
 static esp_websocket_client_handle_t client = NULL;
 
 static void app_disconnect()
