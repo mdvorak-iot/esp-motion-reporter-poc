@@ -1,0 +1,17 @@
+## IDF Component Manager Manifest File
+targets:
+  - esp32
+  - esp32s2
+  - esp32s3
+  - esp32c3
+dependencies:
+  idf:
+    version: ">=4.3.0"
+  button:
+    git: https://github.com/mdvorak/esp-button.git
+  wifi_auto_prov:
+    git: https://github.com/mdvorak/esp-wifi-auto-prov.git
+  wifi_reconnect:
+    git: https://github.com/mdvorak/esp-wifi-reconnect.git
+  status_led:
+    git: https://github.com/mdvorak-iot/esp-status-led.git

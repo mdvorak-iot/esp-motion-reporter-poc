@@ -1,7 +1,8 @@
 #include "app_motion.h"
 #include "app_status.h"
-#include <app_wifi.h>
+#include "sdkconfig.h"
 #include <button.h>
+#include <driver/gpio.h>
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_sleep.h>
@@ -9,56 +10,80 @@
 #include <esp_websocket_client.h>
 #include <esp_wifi.h>
 #include <math.h>
-#include <mpu9250.h>
 #include <nvs_flash.h>
-#include <status_led.h>
+#include <wifi_auto_prov.h>
 #include <wifi_reconnect.h>
 
 static const char TAG[] = "app_main";
 
-#define SAMPLE_INTERVAL_MS (1000 / CONFIG_SAMPLE_RATE_Hz) // Sample interval in milliseconds
+#define APP_DEVICE_NAME CONFIG_APP_DEVICE_NAME
+#define APP_CONTROL_BUTTON_PIN CONFIG_APP_CONTROL_BUTTON_PIN
+#define APP_CONTROL_BUTTON_PROVISION_MS CONFIG_APP_CONTROL_BUTTON_PROVISION_MS
+#define APP_CONTROL_BUTTON_FACTORY_RESET_MS CONFIG_APP_CONTROL_BUTTON_FACTORY_RESET_MS
+#define APP_SNTP_SERVER CONFIG_APP_SNTP_SERVER
+#define APP_WEBSOCKET_SERVER_URL CONFIG_APP_WEBSOCKET_SERVER_URL
+// TODO
+//#define SAMPLE_INTERVAL_MS (1000 / CONFIG_SAMPLE_RATE_Hz) // Sample interval in milliseconds
+#define SAMPLE_INTERVAL_MS (1000 / 30) // Sample interval in milliseconds
 
+static RTC_DATA_ATTR bool force_provisioning = false;
 static esp_websocket_client_handle_t client = NULL;
-static RTC_DATA_ATTR bool provision = false;
 
-// DEBUG
-static void websocket_event_handler(__unused void *handler_args, __unused esp_event_base_t base,
-                                    int32_t event_id, void *event_data)
+static void app_disconnect()
 {
-    esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
-    if (event_id == WEBSOCKET_EVENT_DATA && data->op_code == 0x1)
-    {
-        ESP_LOGI(TAG, "received data: %.*s", data->data_len, data->data_ptr);
-    }
-}
-
-static void provision_wifi()
-{
-    // Set RTC stored variable and deep sleep, which will essentially restart the code
-    provision = true;
-    esp_deep_sleep(1000);
+    // NOTE disconnect from any services, e.g. MQTT server
+    wifi_reconnect_pause();
+    esp_wifi_disconnect();
+    // Slight delay for any async processes to finish
+    vTaskDelay(100 / portTICK_PERIOD_MS);
 }
 
 static void control_button_handler(__unused void *arg, const struct button_data *data)
 {
     if (data->event == BUTTON_EVENT_PRESSED && data->long_press)
     {
-        // Calibrate
-        // TODO
+        // Factory reset
+        ESP_LOGW(TAG, "user requested factory reset");
+        app_disconnect();
+        ESP_LOGW(TAG, "erase nvs");
+        nvs_flash_deinit();
+        nvs_flash_erase();
+        esp_restart();
     }
-    else if (data->event == BUTTON_EVENT_RELEASED && data->press_length_ms > 3000 && !data->long_press)
+    else if (data->event == BUTTON_EVENT_RELEASED && data->press_length_ms > APP_CONTROL_BUTTON_PROVISION_MS && !data->long_press)
     {
         // Provision Wi-Fi
-        provision_wifi();
+        ESP_LOGW(TAG, "user requested wifi provisioning");
+        app_disconnect();
+        // Use RTC memory and deep sleep, to restart main cpu with provisioning flag set to true
+        force_provisioning = true;
+        esp_deep_sleep(1000);
     }
     else if (data->event == BUTTON_EVENT_RELEASED)
     {
-        // Toggle display
+        // App action
+        ESP_LOGW(TAG, "user click");
         // TODO
     }
 }
 
-_Noreturn void app_main()
+static void setup_sntp()
+{
+#if LWIP_DHCP_GET_NTP_SRV
+    sntp_servermode_dhcp(1); // accept NTP offers from DHCP server, if any
+#endif
+#if LWIP_DHCP_GET_NTP_SRV && SNTP_MAX_SERVERS > 1
+    sntp_setservername(1, APP_SNTP_SERVER);
+#else
+    // otherwise, use DNS address from a pool
+    sntp_setservername(0, APP_SNTP_SERVER);
+#endif
+
+    sntp_set_sync_mode(SNTP_SYNC_MODE_SMOOTH);
+    sntp_init();
+}
+
+void setup()
 {
     // Initialize NVS
     esp_err_t err = nvs_flash_init();
@@ -73,63 +98,62 @@ _Noreturn void app_main()
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     ESP_ERROR_CHECK(gpio_install_isr_service(0));
 
-    // Control button
-    // TODO config
+    // Provisioning mode
+    bool provision_now = force_provisioning;
+    force_provisioning = false;
+
+    // Setup control button
     struct button_config control_btn_cfg = {
         .level = BUTTON_LEVEL_LOW_ON_PRESS,
-        .internal_pull = false,
-        .long_press_ms = 10000,
+        .internal_pull = true,
+        .long_press_ms = APP_CONTROL_BUTTON_FACTORY_RESET_MS,
+        .continuous_callback = false,
         .on_press = control_button_handler,
         .on_release = control_button_handler,
         .arg = NULL,
     };
-    ESP_ERROR_CHECK(button_config(GPIO_NUM_0, &control_btn_cfg, NULL));
+    ESP_ERROR_CHECK(button_config(APP_CONTROL_BUTTON_PIN, &control_btn_cfg, NULL));
 
-    // WebSocket client
-    esp_websocket_client_config_t websocket_cfg = {};
-    websocket_cfg.uri = CONFIG_WEBSOCKET_SERVER_URL;
-
-    client = esp_websocket_client_init(&websocket_cfg);
-    ESP_ERROR_CHECK(esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY, websocket_event_handler, NULL));
-
-    // Status
+    // Setup status LED
     app_status_init(client);
 
-    // WiFi
-    struct app_wifi_config wifi_cfg = {
+    // Setup Wi-Fi
+    char name[WIFI_AUTO_PROV_SERVICE_NAME_LEN] = {};
+    ESP_ERROR_CHECK(wifi_auto_prov_generate_name(name, sizeof(name), APP_DEVICE_NAME, false));
+
+    struct wifi_auto_prov_config wifi_cfg = {
         .security = WIFI_PROV_SECURITY_1,
-        .service_name = NULL,
+        .service_name = name,
         .pop = NULL,
-        .hostname = NULL,
         .wifi_connect = wifi_reconnect_resume,
     };
-    ESP_ERROR_CHECK(app_wifi_print_qr_code_handler_register(NULL));
-    ESP_ERROR_CHECK(app_wifi_init(&wifi_cfg));
+    ESP_ERROR_CHECK(wifi_auto_prov_print_qr_code_handler_register(NULL));
+    ESP_ERROR_CHECK(wifi_auto_prov_init(&wifi_cfg));
+    ESP_ERROR_CHECK(tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, name));
     ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_MAX_MODEM));
     ESP_ERROR_CHECK(wifi_reconnect_start());
 
-    // NTP
-#if LWIP_DHCP_GET_NTP_SRV
-    sntp_servermode_dhcp(1); // accept NTP offers from DHCP server, if any
-#endif
-#if LWIP_DHCP_GET_NTP_SRV && SNTP_MAX_SERVERS > 1
-    sntp_setservername(1, "pool.ntp.org");
-#else
-    // otherwise, use DNS address from a pool
-    sntp_setservername(0, "pool.ntp.org");
-#endif
+    // Setup SNTP
+    setup_sntp();
 
-    sntp_set_sync_mode(SNTP_SYNC_MODE_SMOOTH);
-    sntp_init();
+    // WebSocket client
+    esp_websocket_client_config_t websocket_cfg = {};
+    websocket_cfg.uri = APP_WEBSOCKET_SERVER_URL;
+
+    client = esp_websocket_client_init(&websocket_cfg);
 
     // Start
-    ESP_ERROR_CHECK_WITHOUT_ABORT(status_led_set_interval(STATUS_LED_DEFAULT, STATUS_LED_CONNECTING_INTERVAL, true));
-    ESP_ERROR_CHECK(app_wifi_start(provision));
-    provision = false; // Reset RTC flag
+    ESP_ERROR_CHECK(wifi_auto_prov_start(provision_now));
+}
+
+_Noreturn void app_main()
+{
+    setup();
+
     ESP_LOGI(TAG, "starting");
 
     // Devices
-    err = motion_sensors_init();
+    esp_err_t err = motion_sensors_init();
     if (err != ESP_OK)
     {
         ESP_LOGE(TAG, "failed to initialize mpu: %d %s", err, esp_err_to_name(err));

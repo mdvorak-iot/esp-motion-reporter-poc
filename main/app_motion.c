@@ -9,6 +9,7 @@
 
 static const char TAG[] = "app_motion";
 
+#define APP_WEBSOCKET_SERVER_URL CONFIG_APP_WEBSOCKET_SERVER_URL
 #define APP_REPORT_BATCH_SIZE (CONFIG_APP_REPORT_BATCH_SIZE)
 
 static calibration_t cal = {

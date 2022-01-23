@@ -1,5 +1,29 @@
 menu "Application config"
-    config WEBSOCKET_SERVER_URL
+    config APP_DEVICE_NAME
+        string "Device name"
+        default "app_template"
+        help
+            Default name of the device, used in provisioning and as a hostname.
+
+    config APP_CONTROL_BUTTON_PIN
+        int "Control button PIN"
+        default 0
+        help
+            GPIO pin for the control button.
+
+    config APP_CONTROL_BUTTON_PROVISION_MS
+        int "Control button provisioning delay in ms"
+        default 3000
+
+    config APP_CONTROL_BUTTON_FACTORY_RESET_MS
+        int "Control button factory reset delay in ms"
+        default 10000
+
+    config APP_SNTP_SERVER
+        string "SNTP server"
+        default "pool.ntp.org"
+
+    config APP_WEBSOCKET_SERVER_URL
         string "WebSocket server URL"
         default "ws://echo.websocket.org"
 

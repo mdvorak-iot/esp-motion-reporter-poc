@@ -1,0 +1,33 @@
+dependencies:
+  button:
+    component_hash: 6252e776b397a2f0984a241f076d1d75b970fb4b7470d8a97c5466d003b45738
+    source:
+      git: https://github.com/mdvorak/esp-button.git
+      type: git
+    version: 8ba14d3a6032beb9a280dcf6b535241a21605b46
+  idf:
+    component_hash: null
+    source:
+      type: idf
+    version: 4.3.2
+  status_led:
+    component_hash: 21f61208ceed653a5e20b2b8ddca1ad0b57bb33180c4c700d3ff849fe7c887f1
+    source:
+      git: https://github.com/mdvorak-iot/esp-status-led.git
+      type: git
+    version: e74a7d79b951f166e5237c2a9f82c78337a9dfd1
+  wifi_auto_prov:
+    component_hash: 9ecdc982e3de02165e2c72f0197ece3af40ff20fff52a7ba0638d76c9e361a8d
+    source:
+      git: https://github.com/mdvorak/esp-wifi-auto-prov.git
+      type: git
+    version: c879bb3350d9d16ab84879cc92f17d14eeefa463
+  wifi_reconnect:
+    component_hash: 63495552cc79fa2cb960f1dfab72b92937666247a95563b77c91aa3cc8c5b888
+    source:
+      git: https://github.com/mdvorak/esp-wifi-reconnect.git
+      type: git
+    version: aaab0c67827e2a20f0a42c62e259eba59d81008b
+manifest_hash: fa50b633ba24d65ced41eb8a64d4040621cbf0e686ee11d833cc6f3ae12a1128
+target: esp32
+version: 1.0.0

@@ -17,16 +17,11 @@ idf_component_register(
         ${OPTIONAL_REQUIRES}
         freertos
         nvs_flash
-        log
-        esp32
-        esp_wifi
-        app_update
-        wifi_provisioning
         esp_websocket_client
         button
         status_led
         wifi_reconnect
-        app_wifi
-        mpu9250
-        ahrs
+        wifi_auto_prov
+#        mpu9250
+#        ahrs
 )
