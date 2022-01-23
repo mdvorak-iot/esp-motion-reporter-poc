@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Setup Component Manager
-        if: idf_ver == v4.3
+        if: ${{ matrix.idf_ver == 'v4.3' }}
         run: |
           . ${IDF_PATH}/export.sh
           pip install --upgrade idf-component-manager
