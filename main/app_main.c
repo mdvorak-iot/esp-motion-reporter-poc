@@ -120,6 +120,24 @@ void setup()
     // Setup status LED
     app_status_init(client);
 
+    // Display
+    // TODO Kconfig
+    u8g2_esp32_hal_t u8g2_esp32_hal = U8G2_ESP32_HAL_DEFAULT;
+    u8g2_esp32_hal.i2c_num = I2C_NUM_1;
+    u8g2_esp32_hal.sda = 19;
+    u8g2_esp32_hal.scl = 22;
+    u8g2_esp32_hal_init(u8g2_esp32_hal);
+
+    u8x8_Setup(&display, u8x8_d_ssd1306_128x64_noname, u8x8_cad_ssd13xx_i2c, u8g2_esp32_i2c_byte_cb, u8g2_esp32_gpio_and_delay_cb);
+    u8x8_SetI2CAddress(&display, 0x3C << 1);
+    u8x8_InitDisplay(&display);
+    u8x8_SetPowerSave(&display, false);
+    u8x8_ClearDisplay(&display);
+
+    // TODO
+    u8x8_SetFont(&display, u8x8_font_5x8_r);
+    u8x8_DrawString(&display, 0, 0, "FOOBAR");
+
     // Setup Wi-Fi
     char name[WIFI_AUTO_PROV_SERVICE_NAME_LEN] = {};
     ESP_ERROR_CHECK(wifi_auto_prov_generate_name(name, sizeof(name), APP_DEVICE_NAME, false));
@@ -156,11 +174,12 @@ _Noreturn void app_main()
     ESP_LOGI(TAG, "starting");
 
     // Devices
-    esp_err_t err = motion_sensors_init();
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG, "failed to initialize mpu: %d %s", err, esp_err_to_name(err));
-    }
+    // TODO
+    //    esp_err_t err = motion_sensors_init();
+    //    if (err != ESP_OK)
+    //    {
+    //        ESP_LOGE(TAG, "failed to initialize mpu: %d %s", err, esp_err_to_name(err));
+    //    }
 
     // Wait for Wi-Fi
     wifi_reconnect_wait_for_connection(CONFIG_APP_WIFI_PROV_TIMEOUT_S * 1000 + CONFIG_WIFI_RECONNECT_CONNECT_TIMEOUT_MS);
@@ -195,7 +214,8 @@ _Noreturn void app_main()
     while (true)
     {
         // Process sensors
-        motion_sensors_loop(client);
+        // TODO
+        //motion_sensors_loop(client);
 
         // Throttle
         vTaskDelayUntil(&last_collect, SAMPLE_INTERVAL_MS / portTICK_PERIOD_MS);
