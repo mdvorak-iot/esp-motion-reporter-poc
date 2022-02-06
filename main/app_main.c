@@ -11,8 +11,8 @@
 #include <esp_wifi.h>
 #include <math.h>
 #include <nvs_flash.h>
+#include <u8g2.h>
 #include <u8g2_esp32_hal.h>
-#include <u8x8.h>
 #include <wifi_auto_prov.h>
 #include <wifi_reconnect.h>
 
@@ -29,7 +29,7 @@ static const char TAG[] = "app_main";
 #define SAMPLE_INTERVAL_MS (1000 / 30) // Sample interval in milliseconds
 
 static RTC_DATA_ATTR bool force_provisioning = false;
-static u8x8_t display = {};
+static u8g2_t display = {};
 static esp_websocket_client_handle_t client = NULL;
 
 static void app_disconnect()
@@ -128,15 +128,15 @@ void setup()
     u8g2_esp32_hal.scl = 22;
     u8g2_esp32_hal_init(u8g2_esp32_hal);
 
-    u8x8_Setup(&display, u8x8_d_ssd1306_128x64_noname, u8x8_cad_ssd13xx_i2c, u8g2_esp32_i2c_byte_cb, u8g2_esp32_gpio_and_delay_cb);
-    u8x8_SetI2CAddress(&display, 0x3C << 1);
-    u8x8_InitDisplay(&display);
-    u8x8_SetPowerSave(&display, false);
-    u8x8_ClearDisplay(&display);
+    u8g2_Setup_ssd1306_i2c_128x64_noname_1(&display, U8G2_R0, u8g2_esp32_i2c_byte_cb, u8g2_esp32_gpio_and_delay_cb);
+    u8x8_SetI2CAddress(&display.u8x8, 0x3C << 1);
+    u8g2_InitDisplay(&display);
+    u8g2_SetPowerSave(&display, false);
+    u8g2_ClearBuffer(&display);
 
     // TODO
-    u8x8_SetFont(&display, u8x8_font_5x8_r);
-    u8x8_DrawString(&display, 0, 0, "FOOBAR");
+    u8g2_SetFont(&display, u8g2_font_7x13_tr);
+    u8g2_DrawStr(&display, 0, 0, "FooBar");
 
     // Setup Wi-Fi
     char device_name[WIFI_AUTO_PROV_SERVICE_NAME_LEN] = {};
