@@ -128,15 +128,16 @@ void setup()
     u8g2_esp32_hal.scl = 22;
     u8g2_esp32_hal_init(u8g2_esp32_hal);
 
-    u8g2_Setup_ssd1306_i2c_128x64_noname_1(&display, U8G2_R0, u8g2_esp32_i2c_byte_cb, u8g2_esp32_gpio_and_delay_cb);
+    u8g2_Setup_ssd1306_i2c_128x64_noname_f(&display, U8G2_R0, u8g2_esp32_i2c_byte_cb, u8g2_esp32_gpio_and_delay_cb);
     u8x8_SetI2CAddress(&display.u8x8, 0x3C << 1);
     u8g2_InitDisplay(&display);
     u8g2_SetPowerSave(&display, false);
-    u8g2_ClearBuffer(&display);
+    u8g2_ClearDisplay(&display);
 
     // TODO
-    u8g2_SetFont(&display, u8g2_font_7x13_tr);
-    u8g2_DrawStr(&display, 0, 0, "FooBar");
+    u8g2_SetFont(&display, u8g2_font_7x13_mr);
+    u8g2_DrawStr(&display, 10, 10, "FooBar");
+    u8g2_SendBuffer(&display);
 
     // Setup Wi-Fi
     char device_name[WIFI_AUTO_PROV_SERVICE_NAME_LEN] = {};
