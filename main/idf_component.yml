@@ -9,13 +9,17 @@ dependencies:
     version: ">=4.3.0"
   button:
     git: https://github.com/mdvorak/esp-button.git
+    version: v1.0.1
   wifi_auto_prov:
     git: https://github.com/mdvorak/esp-wifi-auto-prov.git
   wifi_reconnect:
     git: https://github.com/mdvorak/esp-wifi-reconnect.git
+    version: v1.0.0
   status_led:
     git: https://github.com/mdvorak-iot/esp-status-led.git
+    version: v1.0.0
   u8g2:
     git: https://github.com/olikraus/u8g2.git
   u8g2_hal:
     git: https://github.com/mdvorak/esp-u8g2-hal.git
+    version: v1.0.0

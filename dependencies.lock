@@ -9,7 +9,7 @@ dependencies:
     component_hash: null
     source:
       type: idf
-    version: 4.3.2
+    version: 4.4.0
   status_led:
     component_hash: 21f61208ceed653a5e20b2b8ddca1ad0b57bb33180c4c700d3ff849fe7c887f1
     source:
@@ -17,29 +17,29 @@ dependencies:
       type: git
     version: e74a7d79b951f166e5237c2a9f82c78337a9dfd1
   u8g2:
-    component_hash: 4a9322204b3a207b23b99f0ef3bc35e83e94003cac173aa94ef11883b849a1a1
+    component_hash: 5ba41bb118cdc804740267b2e07f019c97688d681adaf25ccdb52c20010b71fe
     source:
       git: https://github.com/olikraus/u8g2.git
       type: git
-    version: ef9fa9f8f8aaa7767c7dd959dcf512433ddc2047
+    version: 41f3a6e9f4218a508d5360f63ba3c158265b4176
   u8g2_hal:
-    component_hash: 17861e3183b33a069671d4c0402d0efd32bf4d68be7240fbe18a64e77a075f23
+    component_hash: 409c70cf1fd07c374f11b818792a43edb7d8b1816bdfbff4ec22dad52419a1dc
     source:
       git: https://github.com/mdvorak/esp-u8g2-hal.git
       type: git
-    version: 39e95a95a3d4b02900b4aa5368a5b44bd4087ad6
+    version: 1bca5cae0b3d7594ff49dbc4936a85ec7c406903
   wifi_auto_prov:
-    component_hash: 9ecdc982e3de02165e2c72f0197ece3af40ff20fff52a7ba0638d76c9e361a8d
+    component_hash: f4925e7e59abd1c48e88003c5eab5b3e56a00620a89714921dfa684073ebccca
     source:
       git: https://github.com/mdvorak/esp-wifi-auto-prov.git
       type: git
-    version: f548edb2d12686b02148df0b55b4219e199312a6
+    version: b166ef1803fc0cd16ea62524e47929b6abcaf0bf
   wifi_reconnect:
     component_hash: 63495552cc79fa2cb960f1dfab72b92937666247a95563b77c91aa3cc8c5b888
     source:
       git: https://github.com/mdvorak/esp-wifi-reconnect.git
       type: git
     version: aaab0c67827e2a20f0a42c62e259eba59d81008b
-manifest_hash: 638728bafb3fa8a1c78b105f46321e403f057e211e33ea81b511a80c0d2c0340
+manifest_hash: e4aff2884b7d729a6abbf29132b1e923d476c0e8a6c791b0ee28e25ebdc6fde3
 target: esp32
 version: 1.0.0
