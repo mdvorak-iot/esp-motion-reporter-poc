@@ -27,7 +27,7 @@ jobs:
           - { idf_target: esp32s3, idf_ver: v4.3 }
     container: espressif/idf:release-${{ matrix.idf_ver }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3.1.0
 
       - name: Setup Component Manager
         if: ${{ matrix.idf_ver == 'v4.3' }}
@@ -52,7 +52,7 @@ jobs:
   platformio:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3.1.0
 
       - name: Setup Python
         uses: actions/setup-python@v2
